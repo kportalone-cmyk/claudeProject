@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+motor
+aiofiles
+httpx
+anthropic
+python-dotenv
+PyJWT
+openpyxl
+
+

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{APP_TITLE}}</title>
+<link rel="icon" href="/static/img/favicon.ico?v=2" type="image/x-icon">
+<link rel="shortcut icon" href="/static/img/favicon.ico?v=2" type="image/x-icon">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        brand: { DEFAULT:'#4A7CFF', light:'#EBF1FF', hover:'#3A6AEE', dark:'#2B5CE6' },
+        surface: { DEFAULT:'#FFFFFF', alt:'#F7F8FC', border:'#E5E8EB', muted:'#F0F2F5' },
+      },
+      fontFamily: {
+        sans: ['Inter','Noto Sans KR','-apple-system','sans-serif'],
+        mono: ['IBM Plex Mono','monospace'],
+      }
+    }
+  }
+}
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.1/marked.min.js"></script>
+<link rel="stylesheet" href="/static/css/app.css?v={{APP_VERSION}}">
+</head>
+<body>
+<div id="app">
+<div id="header">
+  <div class="hdr-left"><div class="hdr-logo"><div class="hdr-logo-icon">{{APP_BRAND_ICON}}</div><div><span class="hdr-logo-text">{{APP_BRAND}} <span>{{APP_BRAND_SUB}}</span></span><span class="hdr-logo-sub">{{APP_BRAND_COMPANY}}</span></div></div></div>
+  <div class="hdr-right"><button class="hdr-btn" id="btn-infographic"><span class="material-icons-outlined">insert_chart</span> 인포그래픽</button><button class="hdr-btn" id="btn-slidedeck"><span class="material-icons-outlined">slideshow</span> 슬라이드</button><button class="hdr-btn" id="btn-rest-task"><span class="material-icons-outlined">rocket_launch</span> 스케줄 작업</button><button class="hdr-btn" id="btn-figma"><span class="material-icons-outlined">palette</span> Figma→HTML</button><button class="hdr-btn" id="btn-settings"><span class="material-icons-outlined">settings</span></button><div class="hdr-status"><div class="hdr-dot"></div><span id="conn-status">연결 중</span></div><span class="hdr-user" id="user-badge" style="display:none"></span><button class="hdr-btn" id="btn-admin" style="display:none;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none"><span class="material-icons-outlined">admin_panel_settings</span> 관리자</button></div>
+</div>
+<div id="left-panel">
+  <div id="lp-resize-handle"></div>
+  <div class="lp-header"><h3><span class="material-icons-outlined">chat_bubble_outline</span> <span id="lp-tab-title">요청한 업무</span></h3><div style="display:flex;gap:4px"><button class="lp-btn lp-tab-btn" data-tab="project" title="프로젝트"><span class="material-icons-outlined" style="font-size:16px">folder_special</span></button><button class="lp-btn lp-tab-btn active" data-tab="chat" title="대화 기록"><span class="material-icons-outlined" style="font-size:16px">chat</span></button><button class="lp-btn lp-tab-btn" data-tab="rest" title="스케줄 작업"><span class="material-icons-outlined" style="font-size:16px">api</span></button><button class="lp-btn" id="btn-new-chat" title="새 대화"><span class="material-icons-outlined" style="font-size:16px">add</span></button><button class="lp-btn" id="btn-refresh-logs" title="새로고침"><span class="material-icons-outlined" style="font-size:16px">refresh</span></button></div></div>
+  <div id="project-list" style="display:none;flex:1;overflow-y:auto;padding:6px 8px">
+    <div id="proj-items-lp"></div>
+  </div>
+  <div id="log-list"><div class="log-empty"><span class="material-icons-outlined">forum</span>대화 기록이 없습니다</div></div>
+  <div id="rest-task-list" style="display:none;flex:1;overflow-y:auto;padding:6px 8px"><div class="log-empty"><span class="material-icons-outlined">api</span>스케줄 작업이 없습니다</div></div>
+</div>
+<div id="center-panel">
+  <!-- 프로젝트 목록 페이지 -->
+  <div id="proj-page-list" style="display:none">
+    <div class="proj-pg-header"><h2>프로젝트</h2><button class="proj-create-btn" id="btn-new-project"><span class="material-icons-outlined">add</span> 새 프로젝트</button></div>
+    <div class="proj-pg-search"><span class="material-icons-outlined">search</span><input type="text" id="proj-search" placeholder="프로젝트 검색"></div>
+    <div id="proj-grid" class="proj-grid"></div>
+  </div>
+  <!-- 프로젝트 상세 페이지 -->
+  <div id="proj-page-detail" style="display:none">
+    <div class="proj-dt-top">
+      <button class="proj-back-link" id="btn-proj-back"><span class="material-icons-outlined">arrow_back</span> 모든 프로젝트</button>
+      <div class="proj-dt-head">
+        <h2 id="proj-dt-name"></h2>
+        <div style="display:flex;gap:6px"><button class="proj-icon-btn" id="btn-proj-edit" title="편집"><span class="material-icons-outlined">edit</span></button><button class="proj-icon-btn" id="btn-proj-delete" title="삭제"><span class="material-icons-outlined">delete</span></button></div>
+      </div>
+      <div id="proj-dt-desc" class="proj-dt-desc"></div>
+    </div>
+    <div class="proj-dt-body">
+      <div class="proj-dt-main">
+        <div class="proj-dt-chat-header"><span>💬 대화</span><div style="display:flex;gap:4px;align-items:center"><button class="proj-sm-btn subtle" id="btn-proj-chat-select" title="선택 모드">선택</button><button class="proj-sm-btn danger" id="btn-proj-chat-delall" title="전체 삭제" style="display:none">전체삭제</button><button class="proj-sm-btn danger" id="btn-proj-chat-delsel" title="선택 삭제" style="display:none">삭제</button><button class="proj-sm-btn" id="btn-proj-chat-cancel" style="display:none">취소</button><button class="proj-sm-btn primary" id="btn-proj-new-chat">새 대화</button></div></div>
+        <div id="proj-dt-chats" class="proj-dt-chats"></div>
+      </div>
+      <div class="proj-dt-side">
+        <div class="proj-dt-card">
+          <div class="proj-dt-card-hd"><span>📋 지침</span><button class="proj-icon-btn sm" id="btn-proj-instr-edit"><span class="material-icons-outlined">edit</span></button></div>
+          <div id="proj-dt-instr" class="proj-dt-card-body">지침 없음</div>
+        </div>
+        <div class="proj-dt-card" id="proj-files-card">
+          <div class="proj-dt-card-hd"><span>📎 파일</span><div style="display:flex;gap:4px"><button class="proj-text-btn" id="btn-proj-mkdir">새폴더</button><button class="proj-text-btn" id="btn-proj-folder-add">폴더업로드</button><button class="proj-text-btn primary" id="btn-proj-file-add">파일추가</button></div></div>
+          <div id="proj-file-breadcrumb" class="proj-file-bc"><span class="pfbc-item pfbc-root" data-path=".">📁 루트</span></div>
+          <div id="proj-dt-files" class="proj-dt-card-body"></div>
+          <div id="proj-file-drop" class="proj-file-dropzone"><span class="material-icons-outlined" style="font-size:20px">cloud_upload</span><br>파일 또는 폴더를 드래그하세요</div>
+          <input type="file" id="proj-file-input" style="display:none" multiple>
+          <input type="file" id="proj-folder-input" style="display:none" webkitdirectory multiple>
+        </div>
+        <div class="proj-dt-card">
+          <div class="proj-dt-card-hd"><span>🔄 버전 관리</span><button class="proj-icon-btn sm" id="btn-proj-outputs-refresh"><span class="material-icons-outlined">refresh</span></button></div>
+          <div id="proj-dt-outputs" class="proj-dt-card-body"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 기존 대화 화면 -->
+  <div id="messages"><div id="welcome"><h2>{{APP_WELCOME_TITLE}}</h2><div class="wc-sub">원하시는 업무를 입력하세요</div><div class="wc-cards"><div class="wc-card"><span class="wc-card-icon">📂</span><span class="wc-card-text">현재 선택된 폴더의 파일목록 보여줘</span><span class="wc-card-arrow material-icons-outlined">chevron_right</span></div><div class="wc-card"><span class="wc-card-icon">📝</span><span class="wc-card-text">웹 크롤링 Python 스크립트 만들어줘</span><span class="wc-card-arrow material-icons-outlined">chevron_right</span></div><div class="wc-card"><span class="wc-card-icon">📊</span><span class="wc-card-text">2025년 프로야구 순위 엑셀파일로 만들어줘</span><span class="wc-card-arrow material-icons-outlined">chevron_right</span></div><div class="wc-card"><span class="wc-card-icon">🌐</span><span class="wc-card-text">케이엠에스랩 솔루션을 검색해서 홍보사이트 만들어줘</span><span class="wc-card-arrow material-icons-outlined">chevron_right</span></div></div></div></div>
+  <div id="input-area">
+    <div class="input-folder-bar"><span class="material-icons-outlined" style="font-size:14px">folder_open</span> 작업 폴더: <code id="current-folder-display">루트</code></div>
+    <div class="input-wrap"><div id="attach-preview"></div><button id="attach-btn" title="파일 첨부 (드래그&드롭 또는 Ctrl+V)">📎</button><textarea id="msg-input" placeholder="원하시는 업무를 입력하세요" rows="1"></textarea><button id="compress-btn" onclick="compressContext()" title="대화내역 압축" style="padding:0 10px;height:34px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:#64748b;cursor:pointer;flex-shrink:0;font-size:11px;font-family:var(--sans);white-space:nowrap;transition:all .15s" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='var(--bg)'">대화내역 압축</button><button id="stop-btn" title="작업 중지" style="display:none"><svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><rect x="6" y="6" width="12" height="12" rx="2"></rect></svg></button><button id="send-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg></button></div>
+    <input type="file" id="attach-file-input" style="display:none" multiple>
+    <div class="input-hint">
+      <span class="input-chip" id="chip-infographic"><span class="material-icons-outlined">insert_chart</span> 인포그래픽</span>
+      <span class="input-chip" id="chip-slidedeck"><span class="material-icons-outlined">slideshow</span> 슬라이드</span>
+      <span class="input-chip" id="chip-figma"><span class="material-icons-outlined">palette</span> Figma 변환</span>
+      <span style="font-size:10px">Enter 전송 · Shift+Enter 줄바꿈 · 📎파일첨부/Ctrl+V/드래그&드롭</span>
+    </div>
+  </div>
+</div>
+<div id="right-panel">
+  <div id="rp-resize-handle"></div>
+  <div class="rp-tabs">
+    <div class="rp-tab active" data-rptab="files" id="rptab-files">📁 내 파일</div>
+    <div class="rp-tab" data-rptab="shared" id="rptab-shared">🔎 공유</div>
+    <button class="rp-refresh-btn" id="btn-refresh-files" title="새로고침"><span class="material-icons-outlined" style="font-size:16px">refresh</span></button>
+  </div>
+  <div id="rp-files-view">
+    <div id="breadcrumb"><span class="bc-link">Home</span></div>
+    <div id="move-bar" class="fi-move-bar"><span class="move-count">0</span>개 선택 — 이동할 폴더로 이동 후 <button class="primary" id="btn-move-here">여기로 이동</button> <button id="btn-move-cancel">취소</button></div>
+    <div id="file-list"></div>
+  </div>
+  <div id="rp-shared-view" style="display:none;flex:1;overflow-y:auto">
+    <div id="shared-received" style="padding:8px 10px">
+      <div style="font-size:11px;font-weight:600;color:var(--tx2);padding:4px 0;border-bottom:1px solid var(--border-lt)">📥 공유 받은 폴더</div>
+      <div id="shared-received-list"></div>
+    </div>
+    <div id="shared-mine" style="padding:8px 10px">
+      <div style="font-size:11px;font-weight:600;color:var(--tx2);padding:4px 0;border-bottom:1px solid var(--border-lt)">📤 내가 공유한 폴더</div>
+      <div id="shared-mine-list"></div>
+    </div>
+    <div id="shared-browse" style="display:none;padding:0">
+      <div id="shared-breadcrumb" style="padding:8px 14px;font-family:var(--mono);font-size:11px;color:var(--tx3);border-bottom:1px solid var(--border-lt);background:var(--bg)"></div>
+      <div id="shared-file-list" style="flex:1;overflow-y:auto;padding:4px 0"></div>
+    </div>
+  </div>
+  <div class="rp-bottom">
+    <div class="rp-btn-row"><button class="rp-btn primary" id="btn-upload"><span class="material-icons-outlined" style="font-size:14px">upload_file</span> 파일</button><button class="rp-btn primary" id="btn-upload-folder"><span class="material-icons-outlined" style="font-size:14px">drive_folder_upload</span> 폴더</button><button class="rp-btn" id="btn-new-folder"><span class="material-icons-outlined" style="font-size:14px">create_new_folder</span> 새폴더</button></div>
+    <div class="rp-btn-row"><button class="rp-btn" id="btn-dl-folder"><span class="material-icons-outlined" style="font-size:14px">archive</span> 다운로드</button><button class="rp-btn danger" id="btn-delete-all"><span class="material-icons-outlined" style="font-size:14px">delete_sweep</span> 전체삭제</button></div>
+    <input type="file" id="file-input" style="display:none" multiple><input type="file" id="folder-input" style="display:none" webkitdirectory multiple>
+  </div>
+</div>
+</div>
+<div class="modal-overlay" id="modal"><div class="modal-box"><div class="modal-title" id="modal-title"></div><div class="modal-body" id="modal-body"></div><div class="modal-btns" id="modal-btns"></div></div></div>
+<script src="/static/js/app.js?v={{APP_VERSION}}"></script>
+<script>window._kportalUrl='{{PORTAL_URL}}';window._appVer='{{APP_VERSION}}';</script>
+</body>
+</html>
