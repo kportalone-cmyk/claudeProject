@@ -164,6 +164,16 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
 .spin-text{margin-top:10px;font-size:12px;color:var(--tx3)}
 .tab-page{display:none}.tab-page.active{display:block}
 .dash-footer{text-align:center;font-size:10px;color:var(--tx3);padding:20px 0}
+
+/* ===== TOKEN TAB ===== */
+.token-model-legend{display:flex;gap:16px;margin-top:8px;justify-content:center;flex-wrap:wrap}
+.token-model-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx2)}
+.token-model-dot{width:10px;height:10px;border-radius:50%}
+.cost-value{font-size:18px;font-weight:800;color:var(--tx)}
+.cost-value .currency{font-size:11px;font-weight:500;color:var(--tx3);margin-right:2px}
+.model-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700}
+.model-opus{background:#f0e6ff;color:#7c3aed}
+.model-sonnet{background:#e0f7fa;color:#0891b2}
 </style>
 </head>
 <body>
@@ -178,6 +188,7 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
     <div class="nav-item active" data-tab="overview"><span class="material-icons-outlined">dashboard</span> 전체 현황</div>
     <div class="nav-item" data-tab="users"><span class="material-icons-outlined">person_search</span> 사용자 검색</div>
     <div class="nav-item" data-tab="storage"><span class="material-icons-outlined">folder_open</span> 파일/스토리지</div>
+    <div class="nav-item" data-tab="tokens"><span class="material-icons-outlined">token</span> 토큰 사용량</div>
   </nav>
   <div class="sidebar-footer">
     <a href="javascript:void(0)" id="sidebar-refresh"><span class="material-icons-outlined" style="font-size:16px">refresh</span> 새로고침</a>
@@ -241,6 +252,36 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
 
     <!-- TAB: STORAGE -->
     <div class="tab-page" id="page-storage"></div>
+
+    <!-- TAB: TOKENS -->
+    <div class="tab-page" id="page-tokens">
+      <div class="top-bar">
+        <div class="greeting"><h1>토큰 사용량</h1><p>AI 모델별, 사용자별 토큰 소비 및 비용을 분석합니다</p></div>
+        <div class="top-actions">
+          <span class="top-date"><span class="material-icons-outlined">calendar_today</span> <span id="token-today-date"></span></span>
+          <button class="icon-btn" id="btn-token-refresh" title="새로고침"><span class="material-icons-outlined" style="font-size:16px">refresh</span></button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <div class="period-tabs" id="token-period-tabs"><button class="period-btn" data-p="today">오늘</button><button class="period-btn" data-p="week">이번 주</button><button class="period-btn active" data-p="month">이번 달</button><button class="period-btn" data-p="year">올해</button></div>
+        <select class="year-select" id="token-year-select"></select>
+        <div class="range-picker-wrap" id="token-range-wrap"><button class="range-btn" id="token-range-btn"><span class="material-icons-outlined" style="font-size:15px">date_range</span> <span class="range-label">기간 선택</span></button><div class="range-dropdown" id="token-range-dd"></div></div>
+      </div>
+      <div class="stat-row" id="token-stat-grid"></div>
+      <div class="chart-row chart-row-r">
+        <div class="card"><div class="card-header"><span class="card-title">일별 토큰 사용 추이</span><span class="card-badge badge-blue" id="token-daily-range"></span></div><div class="chart-canvas"><canvas id="chart-token-daily"></canvas></div></div>
+        <div class="card"><div class="card-header"><span class="card-title">모델별 비율</span><span class="card-badge badge-green" id="token-model-period-label"></span></div><div class="chart-canvas" style="height:180px"><canvas id="chart-token-model"></canvas></div><div class="token-model-legend" id="token-model-legend"></div></div>
+      </div>
+      <div class="chart-row chart-row-2" style="margin-top:16px">
+        <div class="card"><div class="card-header"><span class="card-title">월별 토큰 사용량</span><span class="card-badge badge-blue" id="token-monthly-label"></span></div><div class="chart-canvas"><canvas id="chart-token-monthly"></canvas></div></div>
+        <div class="card"><div class="card-header"><span class="card-title">서비스별 사용량</span><span class="card-badge badge-green" id="token-service-label"></span></div><div class="chart-canvas" style="height:180px"><canvas id="chart-token-service"></canvas></div><div class="feat-legend" id="token-service-legend"></div></div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="card-header"><span class="card-title">사용자별 토큰 사용량</span><span class="card-badge badge-blue" id="token-user-count-badge">Top 50</span></div>
+        <div class="scroll-box" style="max-height:480px"><table class="data-table"><thead><tr><th style="width:32px">#</th><th>사용자</th><th>ID</th><th class="r">입력 토큰</th><th class="r">출력 토큰</th><th class="r">총 토큰</th><th class="r">Opus</th><th class="r">Sonnet</th><th class="r">비용(USD)</th></tr></thead><tbody id="token-user-tbody"></tbody></table></div>
+      </div>
+    </div>
+
     <div class="dash-footer">{{APP_TITLE}} Administration Dashboard</div>
   </div>
 </div>
@@ -249,7 +290,8 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
 <script>
 var BASE='{{BASE_URL}}',CI={},COLORS=['#4f6ef7','#06b6d4','#22c55e','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
 var currentPeriod='month',currentYear=new Date().getFullYear(),searchTimer=null,searchIdx=-1;
-var overviewRange={start:null,end:null},udRange={start:null,end:null},udUsername='';
+var overviewRange={start:null,end:null},udRange={start:null,end:null},tokenRange={start:null,end:null},udUsername='';
+var tokenPeriod='month',tokenYear=new Date().getFullYear();
 var AV=['av-1','av-2','av-3'];
 function api(p){return $.getJSON(BASE+p)}
 function esc(s){return $('<span>').text(s).html()}
@@ -291,15 +333,15 @@ RangePicker.prototype.updateBtn=function(){if(this.start&&this.end){this.btn.add
 RangePicker.prototype.setRange=function(s,e){this.start=s;this.end=e;this.updateBtn()};
 
 // =========== INIT ===========
-var overviewPicker,udPicker;
+var overviewPicker,udPicker,tokenPicker;
 $(function(){
     $('#today-date').text(new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'}));
     var $ys=$('#year-select');for(var y=2024;y<=2028;y++)$ys.append('<option value="'+y+'"'+(y===currentYear?' selected':'')+'>'+y+'년</option>');
     $ys.on('change',function(){currentYear=+$(this).val();loadOverview()});
     $('#period-tabs').on('click','.period-btn',function(){currentPeriod=$(this).data('p');$('#period-tabs .period-btn').removeClass('active');$(this).addClass('active');overviewRange={start:null,end:null};overviewPicker.setRange(null,null);loadOverview()});
     // Sidebar nav
-    $('.nav-item').on('click',function(){var tab=$(this).data('tab');$('.nav-item').removeClass('active');$(this).addClass('active');$('.tab-page').removeClass('active');$('#page-'+tab).addClass('active');if(tab==='storage')loadStorage()});
-    $('#btn-refresh,#sidebar-refresh').on('click',function(){var a=$('.nav-item.active').data('tab');if(a==='overview')loadOverview();else if(a==='storage')loadStorage();else if(a==='users'&&udUsername)loadUserDetail(udUsername)});
+    $('.nav-item').on('click',function(){var tab=$(this).data('tab');$('.nav-item').removeClass('active');$(this).addClass('active');$('.tab-page').removeClass('active');$('#page-'+tab).addClass('active');if(tab==='storage')loadStorage();else if(tab==='tokens')loadTokens()});
+    $('#btn-refresh,#sidebar-refresh').on('click',function(){var a=$('.nav-item.active').data('tab');if(a==='overview')loadOverview();else if(a==='storage')loadStorage();else if(a==='tokens')loadTokens();else if(a==='users'&&udUsername)loadUserDetail(udUsername)});
     // Search with keyboard
     $('#user-search-input').on('input',function(){clearTimeout(searchTimer);searchIdx=-1;var q=$(this).val().trim();if(q.length<1){$('#search-results').hide();return}searchTimer=setTimeout(function(){searchUsers(q)},300)}).on('focus',function(){if($('#search-results .search-item').length)$('#search-results').show()}).on('keydown',function(e){
         var $it=$('#search-results .search-item');if(!$it.length||!$('#search-results').is(':visible'))return;
@@ -314,6 +356,11 @@ $(function(){
     $('#ud-period-tabs').on('click','.period-btn',function(){$('#ud-period-tabs .period-btn').removeClass('active');$(this).addClass('active');udRange={start:null,end:null};udPicker.setRange(null,null);if(udUsername)loadUserDetail(udUsername)});
     overviewPicker=new RangePicker('overview-range-wrap',function(s,e){overviewRange.start=s;overviewRange.end=e;if(s&&e)$('#period-tabs .period-btn').removeClass('active');loadOverview()});
     udPicker=new RangePicker('ud-range-wrap',function(s,e){udRange.start=s;udRange.end=e;if(s&&e)$('#ud-period-tabs .period-btn').removeClass('active');if(udUsername)loadUserDetail(udUsername)});
+    tokenPicker=new RangePicker('token-range-wrap',function(s,e){tokenRange.start=s;tokenRange.end=e;if(s&&e)$('#token-period-tabs .period-btn').removeClass('active');loadTokens()});
+    $('#token-period-tabs').on('click','.period-btn',function(){tokenPeriod=$(this).data('p');$('#token-period-tabs .period-btn').removeClass('active');$(this).addClass('active');tokenRange={start:null,end:null};tokenPicker.setRange(null,null);loadTokens()});
+    var $tys=$('#token-year-select');for(var y=2024;y<=2028;y++)$tys.append('<option value="'+y+'"'+(y===tokenYear?' selected':'')+'>'+y+'년</option>');
+    $tys.on('change',function(){tokenYear=+$(this).val();loadTokens()});
+    $('#btn-token-refresh').on('click',function(){loadTokens()});
     loadOverview();
 });
 
@@ -374,6 +421,47 @@ function loadStorage(){$('#page-storage').html('<div class="dash-loading" style=
     var mx=d.users.length?d.users[0].size:1;d.users.forEach(function(u,i){var pct=mx>0?Math.round((u.size/mx)*100):0;var tp=d.total_size>0?(u.size/d.total_size*100).toFixed(1):'0';var rk=i<3?'<span class="rank-medal rank-'+(i+1)+'">'+(i+1)+'</span>':'<span style="color:var(--tx3);font-size:10px">'+(i+1)+'</span>';
     h+='<tr onclick="selectUser(\''+esc(u.username)+'\')"><td>'+rk+'</td><td><div style="display:flex;align-items:center"><span class="user-avatar '+AV[i%3]+'">'+esc((u.display_name||'?').charAt(0))+'</span><span class="user-name">'+esc(u.display_name)+'</span></div></td><td><span class="user-id">'+esc(u.username)+'</span></td><td class="r"><span class="badge badge-blue">'+num(u.files)+'</span></td><td class="r" style="font-weight:600;font-size:11px">'+esc(u.size_fmt)+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="storage-bar" style="flex:1"><div class="storage-fill" style="width:'+pct+'%"></div></div><span style="font-size:9px;color:var(--tx3);width:32px;text-align:right">'+tp+'%</span></div></td></tr>'});
     h+='</tbody></table></div></div>';$('#page-storage').html(h)}).fail(function(){$('#page-storage').html('<div style="text-align:center;padding:60px;color:var(--tx3);font-size:13px">스토리지 정보를 불러올 수 없습니다</div>')})}
+
+// =========== TOKEN USAGE ===========
+function fmtTokens(n){if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return(n||0).toString()}
+function fmtCost(n){return'$'+(n||0).toFixed(2)}
+function loadTokens(){
+    var dp;
+    if(tokenRange.start&&tokenRange.end)dp=dateParams(tokenRange);else{var pr=periodToRange(tokenPeriod);dp='&start_date='+fmtDate(pr.start)+'&end_date='+fmtDate(pr.end)}
+    $('#token-today-date').text(new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric'}));
+    var pl={today:'오늘',week:'이번 주',month:'이번 달',year:'올해'};
+    var periodLabel=tokenRange.start?fmtDateKr(tokenRange.start)+'~'+fmtDateKr(tokenRange.end):(pl[tokenPeriod]||'이번 달');
+    $('#token-model-period-label').text(periodLabel);$('#token-service-label').text(periodLabel);
+    $.when(
+        api('/api/admin/dashboard/token-summary?_=1'+dp),
+        api('/api/admin/dashboard/token-daily?days=30'+dp),
+        api('/api/admin/dashboard/token-monthly?year='+tokenYear),
+        api('/api/admin/dashboard/token-by-model?_=1'+dp),
+        api('/api/admin/dashboard/token-by-user?_=1&period='+tokenPeriod+dp),
+        api('/api/admin/dashboard/token-by-service?_=1'+dp)
+    ).then(function(s,d,m,md,u,sv){
+        renderTokenSummary(s[0],periodLabel);
+        renderTokenDailyChart(d[0].days||[]);
+        renderTokenMonthlyChart(m[0].months||[],tokenYear);
+        renderTokenModelChart(md[0].models||[]);
+        renderTokenUsersTable(u[0].users||[]);
+        renderTokenServiceChart(sv[0].services||[]);
+    }).fail(function(){$('#token-stat-grid').html('<div style="text-align:center;padding:40px;color:var(--red);width:100%"><span class="material-icons-outlined" style="font-size:36px">error_outline</span><p style="margin-top:8px;font-size:12px">데이터 로드 실패</p></div>')})}
+function renderTokenSummary(s,periodLabel){
+    var cards=[
+        {icon:'toll',label:'총 토큰',value:fmtTokens(s.total_tokens),sub:'오늘 '+fmtTokens(s.today_tokens),iconBg:'var(--blue-light)',iconColor:'var(--blue)'},
+        {icon:'input',label:periodLabel+' 입력',value:fmtTokens(s.range_input_tokens),sub:'',iconBg:'var(--green-light)',iconColor:'var(--green)'},
+        {icon:'output',label:periodLabel+' 출력',value:fmtTokens(s.range_output_tokens),sub:'',iconBg:'var(--amber-light)',iconColor:'var(--amber)'},
+        {icon:'api',label:'API 호출',value:num(s.range_calls),sub:'전체 '+num(s.total_calls)+'회',iconBg:'var(--red-light)',iconColor:'var(--red)'},
+        {icon:'payments',label:periodLabel+' 비용',value:fmtCost(s.range_cost),sub:'전체 '+fmtCost(s.total_cost),iconBg:'#f0e6ff',iconColor:'var(--purple)'}
+    ];
+    var h='';cards.forEach(function(c){h+='<div class="stat-card"><div class="stat-card-icon" style="background:'+c.iconBg+';color:'+c.iconColor+'"><span class="material-icons-outlined">'+c.icon+'</span></div><div class="stat-card-info"><div class="stat-label">'+c.label+'</div><div class="stat-value">'+c.value+'</div>'+(c.sub?'<div class="stat-sub">'+c.sub+'</div>':'')+'</div></div>'});
+    $('#token-stat-grid').html(h)}
+function renderTokenDailyChart(days){if(!days.length)return;$('#token-daily-range').text(days[0].date+' ~ '+days[days.length-1].date);makeChart('chart-token-daily',{type:'line',data:{labels:days.map(function(d){return d.date}),datasets:[{label:'입력 토큰',data:days.map(function(d){return d.input_tokens}),borderColor:'#4f6ef7',backgroundColor:'rgba(79,110,247,0.06)',fill:true,tension:.4,borderWidth:2.5,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:'#4f6ef7'},{label:'출력 토큰',data:days.map(function(d){return d.output_tokens}),borderColor:'#06b6d4',backgroundColor:'transparent',fill:false,tension:.4,borderWidth:2,borderDash:[4,4],pointRadius:0,pointHoverRadius:4}]},options:chartOpts()})}
+function renderTokenMonthlyChart(months,year){$('#token-monthly-label').text(year+'년');makeChart('chart-token-monthly',{type:'bar',data:{labels:months.map(function(m){return m.month+'월'}),datasets:[{label:'입력 토큰',data:months.map(function(m){return m.input_tokens}),backgroundColor:'#4f6ef7',borderRadius:6,maxBarThickness:20},{label:'출력 토큰',data:months.map(function(m){return m.output_tokens}),backgroundColor:'#06b6d4',borderRadius:6,maxBarThickness:20}]},options:chartOpts()})}
+function renderTokenModelChart(models){if(!models.length){$('#token-model-legend').html('<div style="text-align:center;padding:30px;color:var(--tx3);font-size:11px">데이터 없음</div>');return}var mc=['#8b5cf6','#06b6d4','#22c55e','#f59e0b'];makeChart('chart-token-model',{type:'doughnut',data:{labels:models.map(function(m){return m.label}),datasets:[{data:models.map(function(m){return m.total_tokens}),backgroundColor:mc.slice(0,models.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});var lh='';models.forEach(function(m,i){lh+='<div class="feat-item"><div class="feat-dot" style="background:'+mc[i%mc.length]+'"></div><span>'+esc(m.label)+'</span><span style="margin-left:auto;font-size:10px;color:var(--tx3)">'+fmtTokens(m.total_tokens)+' ('+num(m.calls)+'회)</span><span class="feat-count">'+fmtCost(m.cost)+'</span></div>'});$('#token-model-legend').html(lh)}
+function renderTokenServiceChart(services){if(!services.length){$('#token-service-legend').html('<div style="text-align:center;padding:30px;color:var(--tx3);font-size:11px">데이터 없음</div>');return}makeChart('chart-token-service',{type:'doughnut',data:{labels:services.map(function(s){return s.label}),datasets:[{data:services.map(function(s){return s.total_tokens}),backgroundColor:COLORS.slice(0,services.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});var lh='';services.forEach(function(s,i){lh+='<div class="feat-item"><div class="feat-dot" style="background:'+COLORS[i%COLORS.length]+'"></div><span>'+esc(s.label)+'</span><span style="margin-left:auto;font-size:10px;color:var(--tx3)">'+fmtTokens(s.total_tokens)+' ('+num(s.calls)+'회)</span><span class="feat-count">'+fmtCost(s.cost)+'</span></div>'});$('#token-service-legend').html(lh)}
+function renderTokenUsersTable(users){$('#token-user-count-badge').text('Top '+users.length);if(!users.length){$('#token-user-tbody').html('<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--tx3)">데이터 없음</td></tr>');return}var h='';users.forEach(function(u,i){var rk=i<3?'<span class="rank-medal rank-'+(i+1)+'">'+(i+1)+'</span>':'<span style="color:var(--tx3);font-size:10px">'+(i+1)+'</span>';h+='<tr><td>'+rk+'</td><td><div style="display:flex;align-items:center"><span class="user-avatar '+AV[i%3]+'">'+esc((u.display_name||'?').charAt(0))+'</span><span class="user-name">'+esc(u.display_name)+'</span></div></td><td><span class="user-id">'+esc(u.username)+'</span></td><td class="r" style="font-size:11px">'+fmtTokens(u.input_tokens)+'</td><td class="r" style="font-size:11px">'+fmtTokens(u.output_tokens)+'</td><td class="r"><span class="badge badge-blue">'+fmtTokens(u.total_tokens)+'</span></td><td class="r"><span class="model-badge model-opus">'+num(u.opus_calls)+'</span></td><td class="r"><span class="model-badge model-sonnet">'+num(u.sonnet_calls)+'</span></td><td class="r" style="font-weight:600;font-size:11px">'+fmtCost(u.cost)+'</td></tr>'});$('#token-user-tbody').html(h)}
 </script>
 </body>
 </html>

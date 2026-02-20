@@ -90,6 +90,49 @@ MAX_TOKENS_OPUS = int(os.environ.get("MAX_TOKENS_OPUS", "64000"))
 MAX_TOKENS_SONNET = int(os.environ.get("MAX_TOKENS_SONNET", "32000"))
 MAX_TOKENS = MAX_TOKENS_SONNET
 
+# --- 토큰 가격 (USD per 1M tokens) ---
+TOKEN_PRICING = {
+    os.environ.get("MODEL_OPUS", "claude-opus-4-6"): {
+        "input": float(os.environ.get("OPUS_INPUT_PRICE_PER_MTK", "15.0")),
+        "output": float(os.environ.get("OPUS_OUTPUT_PRICE_PER_MTK", "75.0")),
+    },
+    os.environ.get("MODEL_SONNET", "claude-sonnet-4-6"): {
+        "input": float(os.environ.get("SONNET_INPUT_PRICE_PER_MTK", "3.0")),
+        "output": float(os.environ.get("SONNET_OUTPUT_PRICE_PER_MTK", "15.0")),
+    },
+}
+
+def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float:
+    pricing = TOKEN_PRICING.get(model, {"input": 3.0, "output": 15.0})
+    return (input_tokens * pricing["input"] + output_tokens * pricing["output"]) / 1_000_000
+
+async def record_token_usage(
+    username: str, task_id: str, session_id: str,
+    service_type: str, model: str,
+    usage, step: int, key_index: int
+):
+    if not MONGO_OK or token_usage_col is None or usage is None:
+        return
+    try:
+        input_tokens = getattr(usage, 'input_tokens', 0) or 0
+        output_tokens = getattr(usage, 'output_tokens', 0) or 0
+        cache_creation = getattr(usage, 'cache_creation_input_tokens', 0) or 0
+        cache_read = getattr(usage, 'cache_read_input_tokens', 0) or 0
+        cost = estimate_cost(model, input_tokens, output_tokens)
+        await token_usage_col.insert_one({
+            "username": username, "task_id": task_id, "session_id": session_id,
+            "service_type": service_type, "model": model,
+            "input_tokens": input_tokens, "output_tokens": output_tokens,
+            "cache_creation_input_tokens": cache_creation,
+            "cache_read_input_tokens": cache_read,
+            "total_tokens": input_tokens + output_tokens,
+            "step": step, "key_index": key_index,
+            "cost_estimate": round(cost, 6),
+            "created_at": datetime.now(timezone.utc),
+        })
+    except Exception as e:
+        print(f"[TOKEN USAGE] record error: {e}")
+
 # --- 웹 검색 ---
 PERPLEXITY_API_KEY = os.environ.get("PERPLEXITY_API_KEY", "")
 
@@ -196,6 +239,7 @@ try:
     active_tasks_col = mongo_db["active_tasks"]
     api_key_state_col = mongo_db["api_key_state"]
     scheduler_lock_col = mongo_db["scheduler_locks"]
+    token_usage_col = mongo_db["token_usage"]
     # 조직도 DB
     org_db = mongo_client[MONGO_ORG_DB_NAME]
     org_user_collection = org_db["user_info"]
@@ -215,6 +259,7 @@ except Exception:
     active_tasks_col = None
     api_key_state_col = None
     scheduler_lock_col = None
+    token_usage_col = None
 
 # ============ API 키 라운드 로빈 (MongoDB 글로벌 카운터) ============
 ANTHROPIC_API_KEYS = []
@@ -350,6 +395,14 @@ async def lifespan(app):
             # org DB: lid 조회 (관리자 확인 + 사용자 이름 조회)
             if org_user_collection is not None:
                 await org_user_collection.create_index("lid")
+            # token_usage: 토큰 사용량 통계
+            if token_usage_col is not None:
+                await token_usage_col.create_index("created_at")
+                await token_usage_col.create_index("username")
+                await token_usage_col.create_index("model")
+                await token_usage_col.create_index("service_type")
+                await token_usage_col.create_index([("created_at", 1), ("username", 1)])
+                await token_usage_col.create_index([("created_at", 1), ("model", 1)])
             print("[STARTUP] dashboard indexes created")
         except Exception as e:
             print(f"[STARTUP] dashboard index error: {e}")
@@ -1129,6 +1182,8 @@ async def _auto_compress_history(history: list, username: str) -> list:
             messages=[{"role": "user", "content": f"다음 대화를 요약해주세요. 핵심 내용, 결정사항, 작업 결과, 파일 경로 등 중요한 세부 사항을 모두 포함해야 합니다:\n\n{conversation_text[:50000]}"}]
         )
 
+        if hasattr(summary_response, 'usage'):
+            await record_token_usage(username=username, task_id="compress", session_id=user_histories.get(username, {}).get("session_id", ""), service_type="compress", model=MODEL_SONNET, usage=summary_response.usage, step=0, key_index=0)
         summary = ""
         for block in summary_response.content:
             if hasattr(block, "text"):
@@ -1334,6 +1389,9 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
                                     await tm.broadcast(username, {"type":"tool_start","tool":event.content_block.name,"id":event.content_block.id})
                         final_message = await stream.get_final_message()
                         stop_reason = final_message.stop_reason
+                        if final_message and hasattr(final_message, 'usage'):
+                            _sid = user_histories.get(username, {}).get("session_id", task_id)
+                            await record_token_usage(username=username, task_id=task_id, session_id=_sid, service_type="chat", model=selected_model, usage=final_message.usage, step=step, key_index=_key_idx)
                     break
                 except anthropic.RateLimitError:
                     # 다른 API 키로 교체 시도
@@ -2199,6 +2257,218 @@ async def admin_dashboard_storage(token: str):
         "workspace_path": WORKSPACE_ROOT,
         "users": user_storage[:50],
     }
+
+# ============ 토큰 사용량 통계 API ============
+
+@app.get("/{token}/api/admin/dashboard/token-summary")
+async def admin_token_summary(token: str, start_date: str = "", end_date: str = ""):
+    """토큰 사용량 요약 통계"""
+    await _check_admin(token)
+    if not MONGO_OK or token_usage_col is None:
+        return {"total_input_tokens": 0, "total_output_tokens": 0, "total_tokens": 0, "total_cost": 0, "total_calls": 0, "range_input_tokens": 0, "range_output_tokens": 0, "range_tokens": 0, "range_cost": 0, "range_calls": 0, "today_tokens": 0, "today_cost": 0, "today_calls": 0}
+    try:
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        range_start, range_end = _parse_date_range(start_date, end_date)
+        # 전체 합계
+        total_agg = await token_usage_col.aggregate([{"$group": {"_id": None, "input": {"$sum": "$input_tokens"}, "output": {"$sum": "$output_tokens"}, "tokens": {"$sum": "$total_tokens"}, "cost": {"$sum": "$cost_estimate"}, "calls": {"$sum": 1}}}]).to_list(1)
+        t = total_agg[0] if total_agg else {}
+        # 오늘
+        today_agg = await token_usage_col.aggregate([{"$match": {"created_at": {"$gte": today_start}}}, {"$group": {"_id": None, "tokens": {"$sum": "$total_tokens"}, "cost": {"$sum": "$cost_estimate"}, "calls": {"$sum": 1}}}]).to_list(1)
+        td = today_agg[0] if today_agg else {}
+        # 기간 필터
+        r = {}
+        if range_start:
+            date_filter = {"created_at": {"$gte": range_start}}
+            if range_end:
+                date_filter["created_at"]["$lte"] = range_end
+            range_agg = await token_usage_col.aggregate([{"$match": date_filter}, {"$group": {"_id": None, "input": {"$sum": "$input_tokens"}, "output": {"$sum": "$output_tokens"}, "tokens": {"$sum": "$total_tokens"}, "cost": {"$sum": "$cost_estimate"}, "calls": {"$sum": 1}}}]).to_list(1)
+            r = range_agg[0] if range_agg else {}
+        return {
+            "total_input_tokens": t.get("input", 0), "total_output_tokens": t.get("output", 0),
+            "total_tokens": t.get("tokens", 0), "total_cost": round(t.get("cost", 0), 2), "total_calls": t.get("calls", 0),
+            "range_input_tokens": r.get("input", 0), "range_output_tokens": r.get("output", 0),
+            "range_tokens": r.get("tokens", 0), "range_cost": round(r.get("cost", 0), 2), "range_calls": r.get("calls", 0),
+            "today_tokens": td.get("tokens", 0), "today_cost": round(td.get("cost", 0), 2), "today_calls": td.get("calls", 0),
+        }
+    except Exception as e:
+        print(f"[ADMIN] token-summary error: {e}")
+        import traceback; traceback.print_exc()
+        raise HTTPException(500, f"Token summary error: {str(e)}")
+
+@app.get("/{token}/api/admin/dashboard/token-daily")
+async def admin_token_daily(token: str, days: int = 30, start_date: str = "", end_date: str = ""):
+    """일별 토큰 사용 추이"""
+    await _check_admin(token)
+    if not MONGO_OK or token_usage_col is None:
+        return {"days": []}
+    try:
+        range_start, range_end = _parse_date_range(start_date, end_date)
+        if range_start and range_end:
+            s, e = range_start, range_end
+        else:
+            now = datetime.now(timezone.utc)
+            e = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+            s = (now - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        result = []
+        current = s
+        while current <= e:
+            day_start = current.replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end = current.replace(hour=23, minute=59, second=59, microsecond=999999)
+            agg = await token_usage_col.aggregate([
+                {"$match": {"created_at": {"$gte": day_start, "$lte": day_end}}},
+                {"$group": {"_id": None, "input": {"$sum": "$input_tokens"}, "output": {"$sum": "$output_tokens"}, "tokens": {"$sum": "$total_tokens"}, "cost": {"$sum": "$cost_estimate"}, "calls": {"$sum": 1}}}
+            ]).to_list(1)
+            d = agg[0] if agg else {}
+            result.append({"date": current.strftime("%m/%d"), "input_tokens": d.get("input", 0), "output_tokens": d.get("output", 0), "total_tokens": d.get("tokens", 0), "cost": round(d.get("cost", 0), 2), "calls": d.get("calls", 0)})
+            current += timedelta(days=1)
+        return {"days": result}
+    except Exception as e:
+        print(f"[ADMIN] token-daily error: {e}")
+        return {"days": []}
+
+@app.get("/{token}/api/admin/dashboard/token-monthly")
+async def admin_token_monthly(token: str, year: int = 0):
+    """월별 토큰 사용량"""
+    await _check_admin(token)
+    if not MONGO_OK or token_usage_col is None:
+        return {"year": year, "months": []}
+    try:
+        if year == 0:
+            year = datetime.now(timezone.utc).year
+        months = []
+        for m in range(1, 13):
+            s = datetime(year, m, 1, tzinfo=timezone.utc)
+            e = datetime(year, m + 1, 1, tzinfo=timezone.utc) if m < 12 else datetime(year + 1, 1, 1, tzinfo=timezone.utc)
+            agg = await token_usage_col.aggregate([
+                {"$match": {"created_at": {"$gte": s, "$lt": e}}},
+                {"$group": {"_id": None, "input": {"$sum": "$input_tokens"}, "output": {"$sum": "$output_tokens"}, "tokens": {"$sum": "$total_tokens"}, "cost": {"$sum": "$cost_estimate"}, "calls": {"$sum": 1}}}
+            ]).to_list(1)
+            d = agg[0] if agg else {}
+            months.append({"month": m, "input_tokens": d.get("input", 0), "output_tokens": d.get("output", 0), "total_tokens": d.get("tokens", 0), "cost": round(d.get("cost", 0), 2), "calls": d.get("calls", 0)})
+        return {"year": year, "months": months}
+    except Exception as e:
+        print(f"[ADMIN] token-monthly error: {e}")
+        return {"year": year, "months": []}
+
+@app.get("/{token}/api/admin/dashboard/token-by-model")
+async def admin_token_by_model(token: str, start_date: str = "", end_date: str = ""):
+    """모델별 토큰 사용 비율"""
+    await _check_admin(token)
+    if not MONGO_OK or token_usage_col is None:
+        return {"models": []}
+    try:
+        range_start, range_end = _parse_date_range(start_date, end_date)
+        match_filter = {}
+        if range_start:
+            match_filter["created_at"] = {"$gte": range_start}
+            if range_end:
+                match_filter["created_at"]["$lte"] = range_end
+        pipeline = [{"$group": {"_id": "$model", "input_tokens": {"$sum": "$input_tokens"}, "output_tokens": {"$sum": "$output_tokens"}, "total_tokens": {"$sum": "$total_tokens"}, "cost": {"$sum": "$cost_estimate"}, "calls": {"$sum": 1}}}]
+        if match_filter:
+            pipeline.insert(0, {"$match": match_filter})
+        agg = await token_usage_col.aggregate(pipeline).to_list(100)
+        models = []
+        for doc in agg:
+            model_name = doc["_id"] or "unknown"
+            label = "Opus" if "opus" in model_name.lower() else ("Sonnet" if "sonnet" in model_name.lower() else model_name)
+            models.append({"model": model_name, "label": label, "input_tokens": doc["input_tokens"], "output_tokens": doc["output_tokens"], "total_tokens": doc["total_tokens"], "cost": round(doc["cost"], 2), "calls": doc["calls"]})
+        models.sort(key=lambda x: x["total_tokens"], reverse=True)
+        return {"models": models}
+    except Exception as e:
+        print(f"[ADMIN] token-by-model error: {e}")
+        return {"models": []}
+
+@app.get("/{token}/api/admin/dashboard/token-by-user")
+async def admin_token_by_user(token: str, period: str = "month", start_date: str = "", end_date: str = "", limit: int = 50):
+    """사용자별 토큰 사용량 랭킹"""
+    await _check_admin(token)
+    if not MONGO_OK or token_usage_col is None:
+        return {"users": []}
+    try:
+        range_start, range_end = _parse_date_range(start_date, end_date)
+        if not range_start:
+            now = datetime.now(timezone.utc)
+            if period == "today":
+                range_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            elif period == "week":
+                range_start = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
+            elif period == "year":
+                range_start = datetime(now.year, 1, 1, tzinfo=timezone.utc)
+            else:
+                range_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+            range_end = now
+        match_filter = {"created_at": {"$gte": range_start}}
+        if range_end:
+            match_filter["created_at"]["$lte"] = range_end
+        # 사용자+모델별 집계
+        pipeline = [
+            {"$match": match_filter},
+            {"$group": {"_id": {"username": "$username", "model": "$model"}, "input_tokens": {"$sum": "$input_tokens"}, "output_tokens": {"$sum": "$output_tokens"}, "total_tokens": {"$sum": "$total_tokens"}, "cost": {"$sum": "$cost_estimate"}, "calls": {"$sum": 1}}}
+        ]
+        agg = await token_usage_col.aggregate(pipeline).to_list(10000)
+        # 사용자별로 재그룹핑
+        user_map = {}
+        for doc in agg:
+            uname = doc["_id"]["username"]
+            model = doc["_id"]["model"] or ""
+            if uname not in user_map:
+                user_map[uname] = {"username": uname, "input_tokens": 0, "output_tokens": 0, "total_tokens": 0, "cost": 0, "calls": 0, "opus_calls": 0, "sonnet_calls": 0, "opus_tokens": 0, "sonnet_tokens": 0}
+            u = user_map[uname]
+            u["input_tokens"] += doc["input_tokens"]
+            u["output_tokens"] += doc["output_tokens"]
+            u["total_tokens"] += doc["total_tokens"]
+            u["cost"] += doc["cost"]
+            u["calls"] += doc["calls"]
+            if "opus" in model.lower():
+                u["opus_calls"] += doc["calls"]; u["opus_tokens"] += doc["total_tokens"]
+            else:
+                u["sonnet_calls"] += doc["calls"]; u["sonnet_tokens"] += doc["total_tokens"]
+        users = sorted(user_map.values(), key=lambda x: x["total_tokens"], reverse=True)[:limit]
+        # 표시 이름 조회
+        if org_user_collection is not None:
+            for u in users:
+                org = await org_user_collection.find_one({"lid": u["username"]})
+                u["display_name"] = org.get("name", u["username"]) if org else u["username"]
+                u["cost"] = round(u["cost"], 2)
+        else:
+            for u in users:
+                u["display_name"] = u["username"]
+                u["cost"] = round(u["cost"], 2)
+        return {"users": users}
+    except Exception as e:
+        print(f"[ADMIN] token-by-user error: {e}")
+        import traceback; traceback.print_exc()
+        return {"users": []}
+
+@app.get("/{token}/api/admin/dashboard/token-by-service")
+async def admin_token_by_service(token: str, start_date: str = "", end_date: str = ""):
+    """서비스 유형별 토큰 사용 비율"""
+    await _check_admin(token)
+    if not MONGO_OK or token_usage_col is None:
+        return {"services": []}
+    try:
+        range_start, range_end = _parse_date_range(start_date, end_date)
+        match_filter = {}
+        if range_start:
+            match_filter["created_at"] = {"$gte": range_start}
+            if range_end:
+                match_filter["created_at"]["$lte"] = range_end
+        pipeline = [{"$group": {"_id": "$service_type", "total_tokens": {"$sum": "$total_tokens"}, "cost": {"$sum": "$cost_estimate"}, "calls": {"$sum": 1}}}]
+        if match_filter:
+            pipeline.insert(0, {"$match": match_filter})
+        agg = await token_usage_col.aggregate(pipeline).to_list(100)
+        label_map = {"chat": "AI 대화", "rest_task": "스케줄 작업", "compress": "컨텍스트 압축"}
+        services = []
+        for doc in agg:
+            stype = doc["_id"] or "unknown"
+            services.append({"service_type": stype, "label": label_map.get(stype, stype), "total_tokens": doc["total_tokens"], "cost": round(doc["cost"], 2), "calls": doc["calls"]})
+        services.sort(key=lambda x: x["total_tokens"], reverse=True)
+        return {"services": services}
+    except Exception as e:
+        print(f"[ADMIN] token-by-service error: {e}")
+        return {"services": []}
+
 @app.get("/{token}/api/admin/dashboard")
 async def admin_dashboard_page(token: str):
     """관리자 대시보드 페이지"""
@@ -4601,6 +4871,8 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
                                     await save_task_log(task_id, "tool_start", f"도구 호출: {event.content_block.name}", {"tool": event.content_block.name, "id": event.content_block.id})
                         final_message = await stream.get_final_message()
                         stop_reason = final_message.stop_reason
+                        if final_message and hasattr(final_message, 'usage'):
+                            await record_token_usage(username=username, task_id=task_id, session_id=task_id, service_type="rest_task", model=selected_model, usage=final_message.usage, step=step, key_index=_key_idx)
                     if step_text:
                         await save_task_log(task_id, "text", step_text[:2000], {"step": step})
                     break
