@@ -84,11 +84,11 @@ ADMIN_USERS = set(u.strip() for u in os.environ.get("ADMIN_USERS", "").split(","
 
 # --- AI 모델 ---
 MODEL_OPUS = os.environ.get("MODEL_OPUS", "claude-opus-4-6")
-MODEL_SONNET = os.environ.get("MODEL_SONNET", "claude-sonnet-4-5-20250929")
-MODEL = MODEL_OPUS
-MAX_TOKENS_OPUS = int(os.environ.get("MAX_TOKENS_OPUS", "128000"))
-MAX_TOKENS_SONNET = int(os.environ.get("MAX_TOKENS_SONNET", "64000"))
-MAX_TOKENS = MAX_TOKENS_OPUS
+MODEL_SONNET = os.environ.get("MODEL_SONNET", "claude-sonnet-4-6")
+MODEL = MODEL_SONNET
+MAX_TOKENS_OPUS = int(os.environ.get("MAX_TOKENS_OPUS", "64000"))
+MAX_TOKENS_SONNET = int(os.environ.get("MAX_TOKENS_SONNET", "32000"))
+MAX_TOKENS = MAX_TOKENS_SONNET
 
 # --- 웹 검색 ---
 PERPLEXITY_API_KEY = os.environ.get("PERPLEXITY_API_KEY", "")
@@ -290,11 +290,8 @@ def select_model(user_message: str) -> str:
     for kw in opus_keywords:
         if kw in msg:
             return MODEL_OPUS
-    # 메시지 길이로 판단: 짧은 메시지는 단순 질문일 가능성
-    if len(msg) < 15:
-        return MODEL_SONNET
-    # 기본값: Opus (안전한 선택)
-    return MODEL_OPUS
+    # 기본값: Sonnet (비용 절감)
+    return MODEL_SONNET
 
 IS_WINDOWS = sys.platform == "win32"
 os.makedirs(WORKSPACE_ROOT, exist_ok=True)
@@ -1068,6 +1065,121 @@ async def execute_tool(name, inp, ws_dir=None, username=None):
     except Exception as e: return err(f"{type(e).__name__}: {e}")
 
 # ============================================================
+# 대화 히스토리 자동 압축 (7턴 이상 시)
+# ============================================================
+AUTO_COMPRESS_THRESHOLD = int(os.environ.get("AUTO_COMPRESS_THRESHOLD", "7"))
+
+def _count_user_turns(history: list) -> int:
+    """히스토리에서 사용자 텍스트 메시지 수를 카운트 (tool_result 제외)"""
+    count = 0
+    for msg in history:
+        if msg.get("role") != "user":
+            continue
+        content = msg.get("content")
+        if isinstance(content, str):
+            count += 1
+        elif isinstance(content, list):
+            # tool_result만으로 구성된 메시지는 제외
+            has_text = any(
+                isinstance(b, dict) and b.get("type") == "text"
+                for b in content
+            )
+            if has_text:
+                count += 1
+    return count
+
+async def _auto_compress_history(history: list, username: str) -> list:
+    """대화 히스토리가 AUTO_COMPRESS_THRESHOLD 이상이면 자동으로 요약 압축.
+    압축된 새 히스토리를 반환. 실패 시 원본 반환."""
+    user_turns = _count_user_turns(history)
+    if user_turns < AUTO_COMPRESS_THRESHOLD:
+        return history
+
+    print(f"[AUTO COMPRESS] {username}: {user_turns}턴 감지, 자동 압축 시작")
+    try:
+        # 대화 텍스트 추출
+        conversation_text = ""
+        msg_count = 0
+        for m in history:
+            role = m.get("role", "")
+            content = m.get("content", "")
+            if isinstance(content, str) and content.strip():
+                conversation_text += f"\n[{role}]: {content[:2000]}\n"
+                msg_count += 1
+            elif isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict):
+                        if block.get("type") == "text":
+                            conversation_text += f"\n[{role}]: {block['text'][:2000]}\n"
+                            msg_count += 1
+                        elif block.get("type") == "tool_use":
+                            conversation_text += f"\n[tool_use: {block.get('name','')}]\n"
+                        elif block.get("type") == "tool_result":
+                            ct = block.get("content", "")
+                            if isinstance(ct, str):
+                                conversation_text += f"\n[tool_result]: {ct[:500]}\n"
+
+        api_key = await get_next_api_key_async()
+        compress_client = anthropic.AsyncAnthropic(api_key=api_key)
+
+        summary_response = await compress_client.messages.create(
+            model=MODEL_SONNET,
+            max_tokens=4096,
+            system="You are a conversation summarizer. Summarize the entire conversation concisely but completely, preserving:\n1. All key decisions, results, and conclusions\n2. Important file paths, folder names, and technical details\n3. Any pending tasks or next steps\n4. User preferences expressed during the conversation\nWrite in the same language as the conversation. Be thorough but concise.",
+            messages=[{"role": "user", "content": f"다음 대화를 요약해주세요. 핵심 내용, 결정사항, 작업 결과, 파일 경로 등 중요한 세부 사항을 모두 포함해야 합니다:\n\n{conversation_text[:50000]}"}]
+        )
+
+        summary = ""
+        for block in summary_response.content:
+            if hasattr(block, "text"):
+                summary += block.text
+
+        # 새 히스토리: 요약 + 최근 2턴 유지
+        new_history = [
+            {"role": "user", "content": f"[이전 대화 요약]\n{summary}\n\n위 요약은 이전 대화의 압축된 컨텍스트입니다. 이 맥락을 기반으로 대화를 이어가겠습니다."},
+            {"role": "assistant", "content": "네, 이전 대화 내용을 이해했습니다. 요약된 맥락을 바탕으로 계속 진행하겠습니다. 무엇을 도와드릴까요?"}
+        ]
+        # 최근 2턴(user+assistant) 유지
+        recent = []
+        for m in reversed(history):
+            if isinstance(m.get("content"), str) and m.get("role") in ("user", "assistant"):
+                recent.insert(0, m)
+                if len(recent) >= 4:
+                    break
+            elif isinstance(m.get("content"), list):
+                has_text = any(b.get("type") == "text" for b in m["content"] if isinstance(b, dict))
+                if has_text and m.get("role") in ("user", "assistant"):
+                    text_only = [b for b in m["content"] if isinstance(b, dict) and b.get("type") == "text"]
+                    recent.insert(0, {"role": m["role"], "content": text_only})
+                    if len(recent) >= 4:
+                        break
+        new_history.extend(recent)
+
+        print(f"[AUTO COMPRESS] {username}: {len(history)}개 → {len(new_history)}개 메시지로 압축 완료")
+        await tm.broadcast(username, {"type": "auto_compress", "old_count": len(history), "new_count": len(new_history), "message": f"대화가 길어져 자동 압축되었습니다. ({len(history)}개 → {len(new_history)}개)"})
+
+        # DB에도 업데이트
+        if MONGO_OK and chat_collection is not None:
+            session_id = user_histories.get(username, {}).get("session_id", "")
+            if session_id:
+                try:
+                    await chat_collection.update_one(
+                        {"session_id": session_id},
+                        {"$set": {"api_history": new_history, "compressed": True, "compressed_at": datetime.now(timezone.utc)}}
+                    )
+                except:
+                    pass
+
+        # user_histories에도 반영
+        if username in user_histories:
+            user_histories[username]["history"] = new_history
+
+        return new_history
+    except Exception as e:
+        print(f"[AUTO COMPRESS ERROR] {username}: {type(e).__name__}: {e}")
+        return history  # 실패 시 원본 반환
+
+# ============================================================
 # 백그라운드 에이전트 (브라우저 독립)
 # ============================================================
 async def run_agent_background(task_id: str, user_message: str, history: list, ws_dir: str, current_folder: str, username: str, images: list = None, forced_skill_name: str = "", project_id: str = ""):
@@ -1136,6 +1248,9 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
 이 규칙은 인포그래픽, 보고서, 웹사이트, 랜딩페이지, Figma 변환 등 모든 HTML 생성에 적용됩니다.{fc}{project_ctx}
 현재: {datetime.now().isoformat()} | OS: {"Windows" if IS_WINDOWS else "Linux/Mac"}{skills_prompt}"""
 
+    # 히스토리 자동 압축 (7턴 이상 시)
+    history = await _auto_compress_history(history, username)
+
     # 이미지가 있으면 multimodal content block 구성
     if images:
         content_blocks = []
@@ -1178,7 +1293,7 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
         })
 
     try:
-        for step in range(1, 21):
+        for step in range(1, 11):
             await tm.broadcast(username, {"type":"progress","step":step,"message":f"분석 중... (단계 {step})"})
 
             # API 호출 시 이전 턴의 이미지 블록을 텍스트로 교체 (토큰 절약)
@@ -1312,6 +1427,9 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
                 if project_id and tu.name in ("write_file", "edit_file"):
                     await _snapshot_project_before_modify(project_id, username, ws_dir)
                 rs = await execute_tool(tu.name, tu.input, ws_dir, username); rj = json.loads(rs)
+                # tool_result 크기 제한 (8000자)
+                if len(rs) > 8000:
+                    rs = rs[:8000] + '...(truncated)'
                 tool_results.append({"type":"tool_result","tool_use_id":tu.id,"content":rs})
                 await tm.broadcast(username, {"type":"tool_result","tool":tu.name,"id":tu.id,"success":"error" not in rj,"result":rj,"tool_index":idx+1,"tool_total":total_tools})
             history.append({"role":"user","content":tool_results})
@@ -2111,6 +2229,23 @@ h2{font-size:20px;color:#1A1A2E;margin-bottom:8px}p{color:#6B7280;font-size:14px
 @app.get("/favicon.ico")
 async def favicon():
     return FileResponse("static/img/favicon.ico")
+
+# ============================================================
+# 테스트 로그인 (개발/디버깅용)
+# ============================================================
+@app.get("/api/auth/testuser")
+async def test_login():
+    """테스트용 JWT를 생성하여 메인 페이지로 리다이렉트"""
+    payload = {
+        "sub": "auth",
+        "depths": "000000^000000^000006",
+        "exp": 9999999999,  # 2286년까지 유효 (사실상 무한)
+        "userid": "ygkim@kmslab.com",
+        "email": "KM0035"
+    }
+    token = pyjwt.encode(payload, KPORTAL_JWT_SECRET.encode("utf-8"), algorithm="HS256")
+    from starlette.responses import RedirectResponse
+    return RedirectResponse(url=f"/{token}/ko", status_code=302)
 
 # JWT 토큰으로 접속: /{jwt_token} 또는 /{jwt_token}/{lang}
 SUPPORTED_LANGS = {'ko', 'en', 'ja', 'zh'}
@@ -4448,7 +4583,7 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
     await save_task_log(task_id, "info", f"작업 시작: {user_message[:200]}", {"username": username, "folder": current_folder, "model": _model_label, "key": _key_idx})
 
     try:
-        for step in range(1, 21):
+        for step in range(1, 11):
             await save_task_log(task_id, "progress", f"분석 중... (단계 {step})", {"step": step})
 
             final_message = None
@@ -4497,6 +4632,9 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
                 await save_task_log(task_id, "tool_executing", f"도구 실행: {tu.name}", {"tool": tu.name, "id": tu.id, "input": tu.input})
                 rs = await execute_tool(tu.name, tu.input, ws_dir, username)
                 rj = json.loads(rs)
+                # tool_result 크기 제한 (8000자)
+                if len(rs) > 8000:
+                    rs = rs[:8000] + '...(truncated)'
                 tool_results.append({"type": "tool_result", "tool_use_id": tu.id, "content": rs})
                 success = "error" not in rj
                 await save_task_log(task_id, "tool_result", f"도구 완료: {tu.name} ({'성공' if success else '실패'})",

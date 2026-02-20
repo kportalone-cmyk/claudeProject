@@ -560,11 +560,11 @@ function _showStallNotice(){
             '<div id="stall-notice" class="stall-notice">'+
             '<div class="stall-icon">⏸</div>'+
             '<div class="stall-body">'+
-            '<div class="stall-title">응답이 지연되고 있습니다</div>'+
-            '<div class="stall-desc">AI가 작업 중이거나 일시적으로 응답이 중단되었을 수 있습니다.<br>입력창에 <strong>"계속 진행해주세요"</strong>를 입력하면 작업을 이어갈 수 있습니다.</div>'+
+            '<div class="stall-title">응답 대기 중입니다</div>'+
+            '<div class="stall-desc">AI가 복잡한 작업을 처리하고 있어 시간이 걸리고 있습니다. <strong>기다리시면 자동으로 완료</strong>됩니다.<br>오랜 시간 진행되지 않는 경우, "계속 진행 요청"을 클릭하면 중단된 시점부터 다시 시작합니다. 다만 서버 상태에 따라 바로 진행되지 않을 수 있습니다.</div>'+
             '<div class="stall-actions">'+
+            '<button class="stall-btn" onclick="_dismissStall()">확인</button>'+
             '<button class="stall-btn primary" onclick="_sendContinue()">▶ 계속 진행 요청</button>'+
-            '<button class="stall-btn" onclick="_dismissStall()">대기</button>'+
             '<button class="stall-btn danger" onclick="$(\'#stop-btn\').click()">⏹ 작업 중지</button>'+
             '</div></div></div>'
         );
