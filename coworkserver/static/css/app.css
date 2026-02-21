@@ -370,6 +370,23 @@ body{font-family:var(--sans);background:var(--bg);color:var(--tx);height:100vh;o
 .stall-btn.primary:hover{background:#D97706}
 .stall-btn.danger{color:var(--red);border-color:#FECACA}
 .stall-btn.danger:hover{background:#FEF2F2;border-color:var(--red)}
+
+/* Recovery Banner — 미완료 작업 복구 안내 */
+.recovery-banner{display:flex;gap:12px;padding:16px;margin:12px 0;background:linear-gradient(135deg,#FFFBEB,#FEF3C7);border:1px solid #FDE68A;border-radius:12px;animation:fadeUp .3s ease}
+.recovery-icon{font-size:24px;flex-shrink:0;line-height:1.2}
+.recovery-body{flex:1;min-width:0}
+.recovery-title{font-size:13px;font-weight:700;color:#92400E;margin-bottom:4px}
+.recovery-desc{font-size:12px;color:#A16207;line-height:1.6}
+.recovery-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.recovery-btn{padding:6px 14px;border-radius:8px;border:1px solid #FDE68A;background:var(--white);color:#92400E;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:all .15s}
+.recovery-btn:hover{background:#FEF3C7}
+.recovery-btn.primary{background:#F59E0B;color:#fff;border-color:#F59E0B}
+.recovery-btn.primary:hover{background:#D97706}
+.recovery-btn.compress{background:#3B82F6;color:#fff;border-color:#3B82F6}
+.recovery-btn.compress:hover{background:#2563EB}
+.recovery-btn.dismiss{color:var(--tx3);border-color:var(--border)}
+.recovery-btn.dismiss:hover{background:var(--bg)}
+
 @media(max-width:1024px){#app{grid-template-columns:1fr}#left-panel,#right-panel{display:none}}
 
 /* ================================================================

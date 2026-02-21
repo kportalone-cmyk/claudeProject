@@ -127,6 +127,13 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
 .progress-bar{height:4px;background:#eef0f6;border-radius:2px;overflow:hidden;width:80px}
 .progress-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--blue),#818cf8)}
 .scroll-box{max-height:380px;overflow-y:auto}
+.data-table.compact-rank{border-spacing:0 2px}
+.data-table.compact-rank thead th{padding:5px 8px;font-size:9px}
+.data-table.compact-rank td{padding:8px 8px}
+.data-table.compact-rank .user-avatar{width:24px;height:24px;font-size:10px;margin-right:6px}
+.data-table.compact-rank .user-name{font-size:11px}
+.data-table.compact-rank .progress-bar{width:60px;height:3px}
+.data-table.compact-rank .rank-medal{width:18px;height:18px;font-size:9px}
 
 /* ===== FEATURES ===== */
 .feat-legend{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
@@ -144,6 +151,15 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
 .search-item:hover,.search-item.search-active{background:var(--blue-light)}
 .search-item:last-child{border:none}
 .search-empty{padding:20px;text-align:center;color:var(--tx3);font-size:12px}
+.recent-users{margin-top:20px}
+.recent-users-title{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--tx3);margin-bottom:10px;padding:0 4px}
+.recent-users-title .material-icons-outlined{font-size:16px}
+.recent-users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.recent-user-card{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s}
+.recent-user-card:hover{border-color:var(--blue);box-shadow:0 4px 12px rgba(79,110,247,.08);transform:translateY(-1px)}
+.recent-user-card .ru-name{font-size:12px;font-weight:600;color:var(--tx)}
+.recent-user-card .ru-id{font-size:10px;color:var(--tx3)}
+.recent-user-card .ru-time{font-size:9px;color:var(--tx3);margin-left:auto;white-space:nowrap}
 
 /* ===== USER DETAIL ===== */
 .ud-header{display:flex;align-items:center;gap:16px;margin-bottom:18px;padding:20px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border)}
@@ -174,6 +190,150 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
 .model-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700}
 .model-opus{background:#f0e6ff;color:#7c3aed}
 .model-sonnet{background:#e0f7fa;color:#0891b2}
+
+/* Token user detail modal */
+.token-detail-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.35);backdrop-filter:blur(4px);z-index:100;display:flex;align-items:center;justify-content:center;animation:tdFadeIn .2s ease}
+@keyframes tdFadeIn{from{opacity:0}to{opacity:1}}
+@keyframes tdSlideIn{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.token-detail-modal{background:var(--card);border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.18);width:94vw;max-width:960px;max-height:88vh;display:flex;flex-direction:column;animation:tdSlideIn .25s ease}
+.td-header{display:flex;align-items:center;gap:14px;padding:24px 28px 16px;border-bottom:1px solid var(--border)}
+.td-avatar{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:700;flex-shrink:0}
+.td-user-info h3{font-size:16px;font-weight:800;margin-bottom:1px}
+.td-user-info p{font-size:11px;color:var(--tx3)}
+.td-close{margin-left:auto;width:36px;height:36px;border-radius:10px;border:1px solid var(--border);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx3);transition:all .15s;font-size:18px}
+.td-close:hover{background:var(--red-light);color:var(--red);border-color:var(--red)}
+.td-body{flex:1;overflow-y:auto;padding:20px 28px 24px}
+.td-summary-row{display:flex;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.td-summary-card{flex:1;min-width:120px;padding:14px 16px;background:#f8f9fc;border-radius:12px;border:1px solid var(--border)}
+.td-summary-card .td-label{font-size:10px;color:var(--tx3);font-weight:500;margin-bottom:2px;text-transform:uppercase;letter-spacing:.3px}
+.td-summary-card .td-value{font-size:20px;font-weight:800;color:var(--tx)}
+.td-summary-card .td-sub{font-size:10px;color:var(--tx3);margin-top:1px}
+.td-section-title{font-size:13px;font-weight:700;color:var(--tx);margin:18px 0 10px;display:flex;align-items:center;gap:6px}
+.td-section-title .material-icons-outlined{font-size:18px;color:var(--blue)}
+.td-records-table{width:100%;border-collapse:separate;border-spacing:0 3px;font-size:11px}
+.td-records-table thead th{text-align:left;padding:8px 8px;font-weight:600;color:var(--tx3);font-size:9px;text-transform:uppercase;letter-spacing:.5px;position:sticky;top:0;background:var(--card);z-index:1}
+.td-records-table thead th.r{text-align:right}
+.td-records-table tbody tr{background:#fafbfc;border-radius:8px;transition:background .1s}
+.td-records-table tbody tr:hover{background:var(--blue-light)}
+.td-records-table td{padding:8px 8px;vertical-align:middle}
+.td-records-table td:first-child{border-radius:8px 0 0 8px}
+.td-records-table td:last-child{border-radius:0 8px 8px 0}
+.td-records-table td.r{text-align:right}
+.td-pagination{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px}
+.td-page-btn{padding:6px 14px;border-radius:8px;border:1px solid var(--border);background:var(--card);font-size:11px;font-weight:600;cursor:pointer;color:var(--tx2);transition:all .15s}
+.td-page-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-light)}
+.td-page-btn:disabled{opacity:.4;cursor:default}
+.td-page-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.td-page-info{font-size:11px;color:var(--tx3)}
+.td-page-ellipsis{font-size:12px;color:var(--tx3);padding:0 2px;user-select:none}
+.service-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700}
+.service-chat{background:#e0f2fe;color:#0284c7}
+.service-compress{background:#fef3c7;color:#b45309}
+.service-rest{background:#ede9fe;color:#7c3aed}
+.service-other{background:#f1f5f9;color:#64748b}
+.clickable-user{cursor:pointer;transition:color .15s}
+.clickable-user:hover{color:var(--blue);text-decoration:underline}
+.service-badge.clickable{cursor:pointer;transition:all .15s}
+.service-badge.clickable:hover{filter:brightness(.85);transform:scale(1.05)}
+
+/* Q&A Detail Modal */
+.qa-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:center;justify-content:center;animation:tdFadeIn .2s ease}
+.qa-modal{background:var(--card);border-radius:20px;box-shadow:0 24px 64px rgba(0,0,0,.18);width:92vw;max-width:720px;max-height:85vh;display:flex;flex-direction:column;animation:tdSlideIn .25s ease}
+.qa-header{display:flex;align-items:center;gap:12px;padding:20px 24px 14px;border-bottom:1px solid var(--border)}
+.qa-header-icon{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#a78bfa);display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0}
+.qa-header-info h3{font-size:15px;font-weight:700;margin-bottom:1px}
+.qa-header-info p{font-size:10px;color:var(--tx3)}
+.qa-close{margin-left:auto;width:34px;height:34px;border-radius:10px;border:1px solid var(--border);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx3);transition:all .15s;font-size:18px}
+.qa-close:hover{background:var(--red-light);color:var(--red);border-color:var(--red)}
+.qa-body{flex:1;overflow-y:auto;padding:20px 24px 24px}
+.qa-section{margin-bottom:18px}
+.qa-section-label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px}
+.qa-section-label .material-icons-outlined{font-size:16px}
+.qa-bubble{background:#f8f9fc;border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-size:12px;line-height:1.7;color:var(--tx);white-space:pre-wrap;word-break:break-word}
+.qa-bubble.user-msg{background:var(--blue-light);border-color:rgba(79,110,247,.15)}
+.qa-bubble.ai-msg{background:#f0fdf4;border-color:rgba(34,197,94,.15)}
+.qa-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.qa-meta-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--tx3);background:#f8f9fc;padding:4px 10px;border-radius:6px;border:1px solid var(--border)}
+.qa-meta-item .material-icons-outlined{font-size:14px}
+.qa-conversation{display:flex;flex-direction:column;gap:12px}
+.qa-conv-item{display:flex;gap:10px}
+.qa-conv-avatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:700;color:#fff}
+.qa-conv-avatar.user-av{background:linear-gradient(135deg,#4f6ef7,#818cf8)}
+.qa-conv-avatar.ai-av{background:linear-gradient(135deg,#22c55e,#86efac)}
+.qa-conv-content{flex:1;min-width:0}
+.qa-conv-role{font-size:10px;font-weight:700;color:var(--tx3);margin-bottom:3px}
+.qa-conv-text{background:#f8f9fc;border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:11px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+
+/* Analytics Section Divider */
+.analytics-divider{margin:28px 0 18px;display:flex;align-items:center;gap:14px}
+.analytics-divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border) 0%,transparent 100%)}
+.analytics-divider-title{display:flex;align-items:center;gap:9px;font-size:15px;font-weight:800;color:var(--tx);white-space:nowrap;letter-spacing:-.3px}
+.analytics-divider-title .material-icons-outlined{font-size:22px}
+.analytics-divider-title .adt-icon-token{background:linear-gradient(135deg,#8b5cf6,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.analytics-divider-title .adt-icon-disk{background:linear-gradient(135deg,#4f6ef7,#22c55e);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+/* Token Mini Stat */
+.token-mini-stats{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.token-mini-card{flex:1;min-width:120px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden;transition:all .2s}
+.token-mini-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.06);transform:translateY(-1px)}
+.token-mini-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:14px 14px 0 0}
+.token-mini-card.tmc-purple::before{background:linear-gradient(90deg,#8b5cf6,#a78bfa)}
+.token-mini-card.tmc-blue::before{background:linear-gradient(90deg,#4f6ef7,#818cf8)}
+.token-mini-card.tmc-cyan::before{background:linear-gradient(90deg,#06b6d4,#67e8f9)}
+.token-mini-card.tmc-amber::before{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.token-mini-card.tmc-green::before{background:linear-gradient(90deg,#22c55e,#86efac)}
+.token-mini-card .tmc-label{font-size:10px;color:var(--tx3);font-weight:500;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px}
+.token-mini-card .tmc-value{font-size:20px;font-weight:800;color:var(--tx);letter-spacing:-.5px}
+.token-mini-card .tmc-sub{font-size:9px;color:var(--tx3);margin-top:2px}
+
+/* Disk Usage Bars */
+.disk-bar-list{padding:4px 0}
+.disk-bar-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f5f6fa}
+.disk-bar-item:last-child{border-bottom:none}
+.disk-bar-rank{width:20px;font-size:10px;font-weight:700;color:var(--tx3);text-align:center;flex-shrink:0}
+.disk-bar-rank.top3{color:var(--blue);font-weight:800}
+.disk-bar-user{width:80px;font-size:11px;font-weight:600;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.disk-bar-track{flex:1;height:20px;background:#f0f1f5;border-radius:6px;overflow:hidden;position:relative}
+.disk-bar-fill{height:100%;border-radius:6px;transition:width .6s cubic-bezier(.4,0,.2,1);position:relative;min-width:2px}
+.disk-bar-fill.df-1{background:linear-gradient(90deg,#4f6ef7,#818cf8)}
+.disk-bar-fill.df-2{background:linear-gradient(90deg,#06b6d4,#67e8f9)}
+.disk-bar-fill.df-3{background:linear-gradient(90deg,#22c55e,#86efac)}
+.disk-bar-fill.df-4{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.disk-bar-fill.df-5{background:linear-gradient(90deg,#8b5cf6,#a78bfa)}
+.disk-bar-size{width:64px;font-size:10px;font-weight:600;color:var(--tx2);text-align:right;flex-shrink:0}
+.disk-bar-pct{width:40px;font-size:9px;color:var(--tx3);text-align:right;flex-shrink:0}
+
+/* Request Logs */
+.rl-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:8px;transition:all .15s;cursor:pointer}
+.rl-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06);transform:translateY(-1px)}
+.rl-card-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.rl-card-user{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.rl-card-meta{display:flex;align-items:center;gap:8px;margin-left:auto;flex-shrink:0}
+.rl-card-meta-item{font-size:10px;color:var(--tx3);display:flex;align-items:center;gap:3px;white-space:nowrap}
+.rl-card-meta-item .material-icons-outlined{font-size:14px}
+.rl-card-msg{font-size:12px;color:var(--tx);line-height:1.6;margin-bottom:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
+.rl-card-resp{font-size:11px;color:var(--tx2);line-height:1.5;padding:8px 12px;background:#f8f9fc;border-radius:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all}
+.rl-card-footer{display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap}
+.rl-token-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:#f8f9fc;border:1px solid var(--border);border-radius:6px;font-size:9px;font-weight:600;color:var(--tx2)}
+.rl-token-chip .material-icons-outlined{font-size:12px}
+.rl-status{display:inline-block;width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.rl-status-done{background:var(--green)}.rl-status-running{background:var(--amber)}.rl-status-error{background:var(--red)}.rl-status-cancelled{background:var(--tx3)}
+.rl-filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.rl-filter-input{padding:8px 12px 8px 34px;border:1px solid var(--border);border-radius:10px;font-size:12px;font-family:inherit;background:var(--card);transition:all .2s;width:240px}
+.rl-filter-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,110,247,.08)}
+.rl-filter-wrap{position:relative}
+.rl-filter-wrap .material-icons-outlined{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:16px;color:var(--tx3)}
+.rl-user-filter{padding:8px 12px;border:1px solid var(--border);border-radius:10px;font-size:12px;font-family:inherit;background:var(--card);cursor:pointer;min-width:140px}
+.rl-pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px;padding:8px 0}
+.rl-page-btn{min-width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--card);font-size:11px;font-weight:600;cursor:pointer;color:var(--tx2);transition:all .15s;display:inline-flex;align-items:center;justify-content:center}
+.rl-page-btn:hover:not(:disabled){border-color:var(--blue);color:var(--blue);background:var(--blue-light)}
+.rl-page-btn:disabled{opacity:.35;cursor:default}
+.rl-page-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.rl-page-info{font-size:11px;color:var(--tx3);margin:0 4px}
+.rl-expand{display:none;margin-top:10px;padding:12px 14px;background:linear-gradient(135deg,#f8f9fc,#f1f5ff);border-radius:10px;border:1px solid var(--border);animation:tdSlideIn .2s ease}
+.rl-expand.show{display:block}
+.rl-expand-label{font-size:9px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.rl-expand-text{font-size:11px;color:var(--tx);line-height:1.6;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto}
 </style>
 </head>
 <body>
@@ -189,6 +349,7 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
     <div class="nav-item" data-tab="users"><span class="material-icons-outlined">person_search</span> 사용자 검색</div>
     <div class="nav-item" data-tab="storage"><span class="material-icons-outlined">folder_open</span> 파일/스토리지</div>
     <div class="nav-item" data-tab="tokens"><span class="material-icons-outlined">token</span> 토큰 사용량</div>
+    <div class="nav-item" data-tab="logs"><span class="material-icons-outlined">receipt_long</span> 사용자 요청 로그</div>
   </nav>
   <div class="sidebar-footer">
     <a href="javascript:void(0)" id="sidebar-refresh"><span class="material-icons-outlined" style="font-size:16px">refresh</span> 새로고침</a>
@@ -221,11 +382,35 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
         <div class="card"><div class="card-header"><span class="card-title">Performance</span><span class="card-badge badge-blue" id="daily-range"></span></div><div class="chart-canvas"><canvas id="chart-daily"></canvas></div></div>
         <div class="card"><div class="card-header"><span class="card-title">기능별 사용 비율</span><span class="card-badge badge-green" id="feat-period-label"></span></div><div class="chart-canvas" style="height:180px"><canvas id="chart-features"></canvas></div><div class="feat-legend" id="feat-legend"></div></div>
       </div>
+
+      <!-- Token Analytics -->
+      <div class="analytics-divider"><div class="analytics-divider-title"><span class="material-icons-outlined adt-icon-token">toll</span> 토큰 사용 분석</div></div>
+      <div class="token-mini-stats" id="ov-token-stats"></div>
+      <div class="chart-row chart-row-r">
+        <div class="card"><div class="card-header"><span class="card-title">토큰 I/O 추이</span><span class="card-badge badge-blue" id="ov-token-daily-range"></span></div><div class="chart-canvas"><canvas id="chart-ov-token-daily"></canvas></div></div>
+        <div class="card"><div class="card-header"><span class="card-title">모델별 비율</span><span class="card-badge badge-green" id="ov-model-period"></span></div><div class="chart-canvas" style="height:180px"><canvas id="chart-ov-model"></canvas></div><div class="feat-legend" id="ov-model-legend"></div></div>
+      </div>
+
+      <!-- Disk & Service Analytics -->
+      <div class="analytics-divider" style="margin-top:24px"><div class="analytics-divider-title"><span class="material-icons-outlined adt-icon-disk">storage</span> 시스템 리소스</div></div>
+      <div class="chart-row chart-row-2">
+        <div class="card">
+          <div class="card-header"><span class="card-title">디스크 사용량</span><span class="card-badge badge-blue" id="ov-disk-total-badge"></span></div>
+          <div class="token-mini-stats" id="ov-disk-stats" style="margin-bottom:12px"></div>
+          <div class="disk-bar-list" id="ov-disk-bars"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">사용자 랭킹</span><span class="card-badge badge-blue" id="user-count-badge">Top 10</span></div>
+          <table class="data-table compact-rank"><thead><tr><th style="width:28px">#</th><th>사용자</th><th>ID</th><th class="r">대화</th><th class="r">활동</th></tr></thead><tbody id="user-tbody"></tbody></table>
+        </div>
+      </div>
+
       <div class="chart-row chart-row-2" style="margin-top:16px">
         <div class="card"><div class="card-header"><span class="card-title">월별 현황</span><span class="card-badge badge-blue" id="monthly-label"></span></div><div class="chart-canvas"><canvas id="chart-monthly"></canvas></div></div>
         <div class="card">
-          <div class="card-header"><span class="card-title">사용자 랭킹</span><span class="card-badge badge-blue" id="user-count-badge">Top 50</span></div>
-          <div class="scroll-box"><table class="data-table"><thead><tr><th style="width:32px">#</th><th>사용자</th><th>ID</th><th class="r">대화</th><th class="r">활동</th></tr></thead><tbody id="user-tbody"></tbody></table></div>
+          <div class="card-header"><span class="card-title">서비스별 토큰 비율</span><span class="card-badge badge-green" id="ov-service-period"></span></div>
+          <div class="chart-canvas" style="height:180px"><canvas id="chart-ov-service"></canvas></div>
+          <div class="feat-legend" id="ov-service-legend"></div>
         </div>
       </div>
     </div>
@@ -235,7 +420,13 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
       <div id="user-search-panel">
         <div class="top-bar"><div class="greeting"><h1>사용자 검색</h1><p>이름 또는 ID로 사용자를 검색하고 상세 분석을 확인하세요</p></div></div>
         <div class="search-box"><span class="material-icons-outlined search-icon">search</span><input type="text" class="search-input" id="user-search-input" placeholder="이름 또는 ID 입력..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="dash-user-search-x"><div class="search-results" id="search-results"></div></div>
-        <div id="search-hint" style="text-align:center;padding:60px 20px;color:var(--tx3)"><span class="material-icons-outlined" style="font-size:56px;color:#e0e4ee;display:block;margin-bottom:12px">person_search</span><p style="font-size:14px;font-weight:600;margin-bottom:4px">사용자를 검색하세요</p><p style="font-size:11px">이름 또는 ID를 입력하면 상세 분석을 확인할 수 있습니다</p></div>
+        <div id="search-hint">
+          <div style="text-align:center;padding:40px 20px 20px;color:var(--tx3)"><span class="material-icons-outlined" style="font-size:56px;color:#e0e4ee;display:block;margin-bottom:12px">person_search</span><p style="font-size:14px;font-weight:600;margin-bottom:4px">사용자를 검색하세요</p><p style="font-size:11px">이름 또는 ID를 입력하면 상세 분석을 확인할 수 있습니다</p></div>
+          <div class="recent-users" id="recent-users-section" style="display:none">
+            <div class="recent-users-title"><span class="material-icons-outlined">history</span> 최근 검색한 사용자</div>
+            <div class="recent-users-grid" id="recent-users-grid"></div>
+          </div>
+        </div>
       </div>
       <div id="user-detail-panel" style="display:none">
         <div class="ud-back" id="ud-back"><span class="material-icons-outlined" style="font-size:16px">arrow_back</span> 검색으로 돌아가기</div>
@@ -247,6 +438,28 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
         <div class="stat-row" id="ud-stats"></div>
         <div class="chart-row chart-row-2"><div class="card"><div class="card-header"><span class="card-title">일별 대화 추이</span><span class="card-badge badge-blue" id="ud-daily-range"></span></div><div class="chart-canvas"><canvas id="chart-ud-daily"></canvas></div></div><div class="card"><div class="card-header"><span class="card-title">월별 대화 현황</span><span class="card-badge badge-blue" id="ud-monthly-label"></span></div><div class="chart-canvas"><canvas id="chart-ud-monthly"></canvas></div></div></div>
         <div class="card" style="margin-top:16px"><div class="card-header"><span class="card-title">파일 사용량</span></div><div id="ud-file-stats"></div></div>
+        <!-- 토큰 사용량 대시보드 -->
+        <div style="margin-top:20px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+            <span class="material-icons-outlined" style="font-size:22px;color:var(--purple)">token</span>
+            <h2 style="font-size:16px;font-weight:800;color:var(--tx)">토큰 사용량 분석</h2>
+            <span class="card-badge badge-blue" id="ud-token-badge" style="margin-left:4px"></span>
+          </div>
+          <div class="stat-row" id="ud-token-stats"></div>
+          <div class="chart-row chart-row-r" style="margin-top:16px">
+            <div class="card"><div class="card-header"><span class="card-title">입출력 토큰 추이</span></div><div class="chart-canvas" style="height:240px"><canvas id="chart-ud-token-daily"></canvas></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">모델별 사용 비율</span></div><div class="chart-canvas" style="height:160px"><canvas id="chart-ud-token-model"></canvas></div><div class="token-model-legend" id="ud-token-model-legend" style="margin-top:8px"></div></div>
+          </div>
+          <div class="chart-row chart-row-2" style="margin-top:16px">
+            <div class="card"><div class="card-header"><span class="card-title">서비스별 사용량</span></div><div class="chart-canvas" style="height:160px"><canvas id="chart-ud-token-service"></canvas></div><div class="feat-legend" id="ud-token-service-legend" style="margin-top:8px"></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">일별 호출 & 비용</span></div><div class="chart-canvas" style="height:220px"><canvas id="chart-ud-token-cost"></canvas></div></div>
+          </div>
+          <div class="card" style="margin-top:16px">
+            <div class="card-header"><span class="card-title">상세 호출 내역</span><span class="card-badge badge-blue" id="ud-token-records-badge"></span></div>
+            <table class="td-records-table"><thead><tr><th>일시</th><th>서비스</th><th>모델</th><th class="r">입력</th><th class="r">출력</th><th class="r">합계</th><th class="r">비용</th></tr></thead><tbody id="ud-token-records-tbody"></tbody></table>
+            <div class="td-pagination" id="ud-token-pagination"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -282,6 +495,25 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
       </div>
     </div>
 
+    <!-- TAB: LOGS -->
+    <div class="tab-page" id="page-logs">
+      <div class="top-bar">
+        <div class="greeting"><h1>사용자 요청 로그</h1><p>전체 사용자의 AI 요청 내역과 응답 분석을 확인합니다</p></div>
+        <div class="top-actions">
+          <button class="icon-btn" id="btn-logs-refresh" title="새로고침"><span class="material-icons-outlined" style="font-size:16px">refresh</span></button>
+        </div>
+      </div>
+      <div class="rl-filter-bar">
+        <div class="rl-filter-wrap"><span class="material-icons-outlined">search</span><input type="text" class="rl-filter-input" id="rl-search" placeholder="요청 내용 검색..." autocomplete="off"></div>
+        <input type="text" class="rl-filter-input" id="rl-user-filter" placeholder="사용자 ID 필터..." style="width:180px;padding-left:12px">
+        <div class="range-picker-wrap" id="rl-range-wrap"><button class="range-btn" id="rl-range-btn"><span class="material-icons-outlined" style="font-size:15px">date_range</span> <span class="range-label">기간 선택</span></button><div class="range-dropdown" id="rl-range-dd"></div></div>
+        <span class="td-page-info" id="rl-total-info"></span>
+        <span style="display:flex;align-items:center;gap:10px;margin-left:auto;font-size:10px;color:var(--tx3)"><span style="display:flex;align-items:center;gap:3px"><span class="rl-status rl-status-done"></span>완료</span><span style="display:flex;align-items:center;gap:3px"><span class="rl-status rl-status-error"></span>오류</span><span style="display:flex;align-items:center;gap:3px"><span class="rl-status rl-status-running"></span>진행중</span><span style="display:flex;align-items:center;gap:3px"><span class="rl-status rl-status-cancelled"></span>취소</span></span>
+      </div>
+      <div id="rl-list"></div>
+      <div class="rl-pagination" id="rl-pagination"></div>
+    </div>
+
     <div class="dash-footer">{{APP_TITLE}} Administration Dashboard</div>
   </div>
 </div>
@@ -290,7 +522,7 @@ body{font-family:'Inter','Noto Sans KR',sans-serif;background:var(--bg);color:va
 <script>
 var BASE='{{BASE_URL}}',CI={},COLORS=['#4f6ef7','#06b6d4','#22c55e','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6'];
 var currentPeriod='month',currentYear=new Date().getFullYear(),searchTimer=null,searchIdx=-1;
-var overviewRange={start:null,end:null},udRange={start:null,end:null},tokenRange={start:null,end:null},udUsername='';
+var overviewRange={start:null,end:null},udRange={start:null,end:null},tokenRange={start:null,end:null},rlRange={start:null,end:null},udUsername='';
 var tokenPeriod='month',tokenYear=new Date().getFullYear();
 var AV=['av-1','av-2','av-3'];
 function api(p){return $.getJSON(BASE+p)}
@@ -333,15 +565,15 @@ RangePicker.prototype.updateBtn=function(){if(this.start&&this.end){this.btn.add
 RangePicker.prototype.setRange=function(s,e){this.start=s;this.end=e;this.updateBtn()};
 
 // =========== INIT ===========
-var overviewPicker,udPicker,tokenPicker;
+var overviewPicker,udPicker,tokenPicker,rlPicker;
 $(function(){
     $('#today-date').text(new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'long'}));
     var $ys=$('#year-select');for(var y=2024;y<=2028;y++)$ys.append('<option value="'+y+'"'+(y===currentYear?' selected':'')+'>'+y+'년</option>');
     $ys.on('change',function(){currentYear=+$(this).val();loadOverview()});
     $('#period-tabs').on('click','.period-btn',function(){currentPeriod=$(this).data('p');$('#period-tabs .period-btn').removeClass('active');$(this).addClass('active');overviewRange={start:null,end:null};overviewPicker.setRange(null,null);loadOverview()});
     // Sidebar nav
-    $('.nav-item').on('click',function(){var tab=$(this).data('tab');$('.nav-item').removeClass('active');$(this).addClass('active');$('.tab-page').removeClass('active');$('#page-'+tab).addClass('active');if(tab==='storage')loadStorage();else if(tab==='tokens')loadTokens()});
-    $('#btn-refresh,#sidebar-refresh').on('click',function(){var a=$('.nav-item.active').data('tab');if(a==='overview')loadOverview();else if(a==='storage')loadStorage();else if(a==='tokens')loadTokens();else if(a==='users'&&udUsername)loadUserDetail(udUsername)});
+    $('.nav-item').on('click',function(){var tab=$(this).data('tab');$('.nav-item').removeClass('active');$(this).addClass('active');$('.tab-page').removeClass('active');$('#page-'+tab).addClass('active');if(tab==='storage')loadStorage();else if(tab==='tokens')loadTokens();else if(tab==='logs')loadRequestLogs(1);else if(tab==='users')renderRecentUsers()});
+    $('#btn-refresh,#sidebar-refresh').on('click',function(){var a=$('.nav-item.active').data('tab');if(a==='overview')loadOverview();else if(a==='storage')loadStorage();else if(a==='tokens')loadTokens();else if(a==='users'&&udUsername)loadUserDetail(udUsername);else if(a==='logs')loadRequestLogs(_rlPage)});
     // Search with keyboard
     $('#user-search-input').on('input',function(){clearTimeout(searchTimer);searchIdx=-1;var q=$(this).val().trim();if(q.length<1){$('#search-results').hide();return}searchTimer=setTimeout(function(){searchUsers(q)},300)}).on('focus',function(){if($('#search-results .search-item').length)$('#search-results').show()}).on('keydown',function(e){
         var $it=$('#search-results .search-item');if(!$it.length||!$('#search-results').is(':visible'))return;
@@ -352,7 +584,7 @@ $(function(){
     });
     $(document).on('mouseenter','.search-item',function(){searchIdx=$(this).index();$('.search-item').removeClass('search-active');$(this).addClass('search-active')});
     $(document).on('click',function(e){if(!$(e.target).closest('.search-box').length)$('#search-results').hide()});
-    $('#ud-back').on('click',function(){$('#user-detail-panel').hide();$('#user-search-panel').show()});
+    $('#ud-back').on('click',function(){$('#user-detail-panel').hide();$('#user-search-panel').show();renderRecentUsers()});
     $('#ud-period-tabs').on('click','.period-btn',function(){$('#ud-period-tabs .period-btn').removeClass('active');$(this).addClass('active');udRange={start:null,end:null};udPicker.setRange(null,null);if(udUsername)loadUserDetail(udUsername)});
     overviewPicker=new RangePicker('overview-range-wrap',function(s,e){overviewRange.start=s;overviewRange.end=e;if(s&&e)$('#period-tabs .period-btn').removeClass('active');loadOverview()});
     udPicker=new RangePicker('ud-range-wrap',function(s,e){udRange.start=s;udRange.end=e;if(s&&e)$('#ud-period-tabs .period-btn').removeClass('active');if(udUsername)loadUserDetail(udUsername)});
@@ -361,6 +593,13 @@ $(function(){
     var $tys=$('#token-year-select');for(var y=2024;y<=2028;y++)$tys.append('<option value="'+y+'"'+(y===tokenYear?' selected':'')+'>'+y+'년</option>');
     $tys.on('change',function(){tokenYear=+$(this).val();loadTokens()});
     $('#btn-token-refresh').on('click',function(){loadTokens()});
+    // Request logs
+    rlPicker=new RangePicker('rl-range-wrap',function(s,e){rlRange.start=s;rlRange.end=e;loadRequestLogs(1)});
+    var _rlSearchTimer;
+    $('#rl-search').on('input',function(){clearTimeout(_rlSearchTimer);_rlSearchTimer=setTimeout(function(){loadRequestLogs(1)},400)});
+    $('#rl-user-filter').on('input',function(){clearTimeout(_rlSearchTimer);_rlSearchTimer=setTimeout(function(){loadRequestLogs(1)},400)});
+    $('#btn-logs-refresh').on('click',function(){loadRequestLogs(_rlPage)});
+    renderRecentUsers();
     loadOverview();
 });
 
@@ -369,8 +608,21 @@ function loadOverview(){
     $('#dash-loading').show();$('#dash-content').hide();var dp;
     if(overviewRange.start&&overviewRange.end)dp=dateParams(overviewRange);else{var pr=periodToRange(currentPeriod);dp='&start_date='+fmtDate(pr.start)+'&end_date='+fmtDate(pr.end)}
     var pp='&period='+currentPeriod;
-    $.when(api('/api/admin/dashboard/summary?_=1'+dp),api('/api/admin/dashboard/daily?days=30'+dp),api('/api/admin/dashboard/monthly?year='+currentYear),api('/api/admin/dashboard/users?_=1'+pp+dp),api('/api/admin/dashboard/features?_=1'+pp+dp)
-    ).then(function(s,d,m,u,f){renderSummary(s[0]);renderDailyChart(d[0].days||[]);renderMonthlyChart(m[0].months||[],currentYear);renderFeaturesChart(f[0].features||[]);renderUsersTable(u[0].users||[]);$('#dash-loading').hide();$('#dash-content').show()
+    $.when(
+        api('/api/admin/dashboard/summary?_=1'+dp),
+        api('/api/admin/dashboard/daily?days=30'+dp),
+        api('/api/admin/dashboard/monthly?year='+currentYear),
+        api('/api/admin/dashboard/users?_=1'+pp+dp),
+        api('/api/admin/dashboard/features?_=1'+pp+dp),
+        api('/api/admin/dashboard/token-summary?_=1'+dp),
+        api('/api/admin/dashboard/token-daily?days=30'+dp),
+        api('/api/admin/dashboard/token-by-model?_=1'+dp),
+        api('/api/admin/dashboard/token-by-service?_=1'+dp),
+        api('/api/admin/dashboard/storage')
+    ).then(function(s,d,m,u,f,ts,td,tm,tsvc,disk){
+        renderSummary(s[0]);renderDailyChart(d[0].days||[]);renderMonthlyChart(m[0].months||[],currentYear);renderFeaturesChart(f[0].features||[]);renderUsersTable(u[0].users||[]);
+        renderOvTokenStats(ts[0]);renderOvTokenDailyChart(td[0].days||[]);renderOvModelChart(tm[0].models||[]);renderOvServiceChart(tsvc[0].services||[]);renderOvDisk(disk[0]);
+        $('#dash-loading').hide();$('#dash-content').show()
     }).fail(function(){$('#dash-loading').html('<div style="text-align:center;padding:40px"><span class="material-icons-outlined" style="font-size:48px;color:var(--red)">error_outline</span><p style="margin-top:10px;font-size:13px;color:var(--tx2)">데이터 로드 실패</p><button onclick="loadOverview()" style="margin-top:10px;padding:8px 24px;background:var(--blue);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:12px">다시 시도</button></div>')})}
 function renderSummary(s){
     var pLabel=overviewRange.start?fmtDateKr(overviewRange.start)+' ~ '+fmtDateKr(overviewRange.end):($('#period-tabs .period-btn.active').text()||'이번 달');
@@ -387,11 +639,98 @@ function renderSummary(s){
 function renderDailyChart(days){if(!days.length)return;$('#daily-range').text(days[0].date+' ~ '+days[days.length-1].date);makeChart('chart-daily',{type:'line',data:{labels:days.map(function(d){return d.date}),datasets:[{label:'대화',data:days.map(function(d){return d.chats}),borderColor:'#4f6ef7',backgroundColor:'rgba(79,110,247,0.06)',fill:true,tension:.4,borderWidth:2.5,pointRadius:0,pointHoverRadius:5,pointHoverBackgroundColor:'#4f6ef7'},{label:'사용자',data:days.map(function(d){return d.users}),borderColor:'#f59e0b',backgroundColor:'transparent',fill:false,tension:.4,borderWidth:2,borderDash:[4,4],pointRadius:0,pointHoverRadius:4}]},options:chartOpts()})}
 function renderMonthlyChart(months,year){$('#monthly-label').text(year+'년');makeChart('chart-monthly',{type:'bar',data:{labels:months.map(function(m){return m.month+'월'}),datasets:[{label:'대화',data:months.map(function(m){return m.chats}),backgroundColor:'#4f6ef7',borderRadius:6,maxBarThickness:20},{label:'작업',data:months.map(function(m){return m.tasks}),backgroundColor:'#06b6d4',borderRadius:6,maxBarThickness:20},{label:'사용자',data:months.map(function(m){return m.users}),backgroundColor:'#22c55e',borderRadius:6,maxBarThickness:20}]},options:chartOpts()})}
 function renderFeaturesChart(features){var pl={today:'오늘',week:'이번 주',month:'이번 달',year:'올해'};$('#feat-period-label').text(overviewRange.start?fmtDateKr(overviewRange.start)+'~'+fmtDateKr(overviewRange.end):(pl[currentPeriod]||''));if(!features.length){$('#feat-legend').html('<div style="text-align:center;padding:30px;color:var(--tx3);font-size:11px">데이터 없음</div>');return}makeChart('chart-features',{type:'doughnut',data:{labels:features.map(function(f){return f.name}),datasets:[{data:features.map(function(f){return f.count}),backgroundColor:COLORS.slice(0,features.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});var lh='';features.forEach(function(f,i){lh+='<div class="feat-item"><div class="feat-dot" style="background:'+COLORS[i%COLORS.length]+'"></div><span>'+esc(f.name)+'</span><span class="feat-count">'+num(f.count)+'</span></div>'});$('#feat-legend').html(lh)}
-function renderUsersTable(users){$('#user-count-badge').text('Top '+users.length);if(!users.length){$('#user-tbody').html('<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--tx3)">데이터 없음</td></tr>');return}var max=users[0].chat_count||1,h='';users.forEach(function(u,i){var pct=Math.round((u.chat_count/max)*100);var rk=i<3?'<span class="rank-medal rank-'+(i+1)+'">'+(i+1)+'</span>':'<span style="color:var(--tx3);font-size:10px">'+(i+1)+'</span>';var la=u.last_active?new Date(u.last_active).toLocaleDateString('ko-KR',{month:'short',day:'numeric'}):'-';h+='<tr onclick="selectUser(\''+esc(u.username)+'\')"><td>'+rk+'</td><td><div style="display:flex;align-items:center"><span class="user-avatar '+AV[i%3]+'">'+esc((u.display_name||'?').charAt(0))+'</span><div><div class="user-name">'+esc(u.display_name)+'</div><div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div></div></div></td><td><span class="user-id">'+esc(u.username)+'</span></td><td class="r"><span class="badge badge-blue">'+num(u.chat_count)+'</span></td><td class="r" style="font-size:10px;color:var(--tx3)">'+la+'</td></tr>'});$('#user-tbody').html(h)}
+function renderUsersTable(users){users=users.slice(0,10);$('#user-count-badge').text('Top '+users.length);if(!users.length){$('#user-tbody').html('<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--tx3)">데이터 없음</td></tr>');return}var max=users[0].chat_count||1,h='';users.forEach(function(u,i){var pct=Math.round((u.chat_count/max)*100);var rk=i<3?'<span class="rank-medal rank-'+(i+1)+'">'+(i+1)+'</span>':'<span style="color:var(--tx3);font-size:10px">'+(i+1)+'</span>';var la=u.last_active?new Date(u.last_active).toLocaleDateString('ko-KR',{month:'short',day:'numeric'}):'-';var dn=esc(u.display_name||'').replace(/'/g,"\\'");h+='<tr onclick="selectUser(\''+esc(u.username)+'\',\''+dn+'\')"><td>'+rk+'</td><td><div style="display:flex;align-items:center"><span class="user-avatar '+AV[i%3]+'">'+esc((u.display_name||'?').charAt(0))+'</span><div><div class="user-name">'+esc(u.display_name)+'</div><div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div></div></div></td><td><span class="user-id">'+esc(u.username)+'</span></td><td class="r"><span class="badge badge-blue">'+num(u.chat_count)+'</span></td><td class="r" style="font-size:10px;color:var(--tx3)">'+la+'</td></tr>'});$('#user-tbody').html(h)}
+
+// =========== OVERVIEW: TOKEN & DISK ANALYTICS ===========
+function renderOvTokenStats(ts){
+    var pLabel=overviewRange.start?fmtDateKr(overviewRange.start)+' ~ '+fmtDateKr(overviewRange.end):($('#period-tabs .period-btn.active').text()||'이번 달');
+    var avgCost=ts.range_calls>0?(ts.range_cost/ts.range_calls):0;
+    var h='';
+    h+='<div class="token-mini-card tmc-purple"><div class="tmc-label">전체 토큰</div><div class="tmc-value">'+fmtTokens(ts.total_tokens)+'</div><div class="tmc-sub">'+num(ts.total_calls)+'회 호출</div></div>';
+    h+='<div class="token-mini-card tmc-blue"><div class="tmc-label">'+esc(pLabel)+'</div><div class="tmc-value">'+fmtTokens(ts.range_tokens)+'</div><div class="tmc-sub">입력 '+fmtTokens(ts.range_input_tokens)+' / 출력 '+fmtTokens(ts.range_output_tokens)+'</div></div>';
+    h+='<div class="token-mini-card tmc-cyan"><div class="tmc-label">오늘</div><div class="tmc-value">'+fmtTokens(ts.today_tokens)+'</div><div class="tmc-sub">'+num(ts.today_calls)+'회 호출</div></div>';
+    h+='<div class="token-mini-card tmc-amber"><div class="tmc-label">전체 비용</div><div class="tmc-value">'+fmtCost(ts.total_cost)+'</div><div class="tmc-sub">'+esc(pLabel)+' '+fmtCost(ts.range_cost)+'</div></div>';
+    h+='<div class="token-mini-card tmc-green"><div class="tmc-label">호출당 비용</div><div class="tmc-value">$'+avgCost.toFixed(4)+'</div><div class="tmc-sub">오늘 '+fmtCost(ts.today_cost)+'</div></div>';
+    $('#ov-token-stats').html(h)
+}
+function renderOvTokenDailyChart(days){
+    if(!days.length){$('#ov-token-daily-range').text('데이터 없음');return}
+    $('#ov-token-daily-range').text(days[0].date+' ~ '+days[days.length-1].date);
+    makeChart('chart-ov-token-daily',{type:'line',data:{labels:days.map(function(d){return d.date}),datasets:[
+        {label:'입력 토큰',data:days.map(function(d){return d.input_tokens}),borderColor:'#4f6ef7',backgroundColor:'rgba(79,110,247,.1)',fill:true,tension:.4,borderWidth:2,pointRadius:0,pointHoverRadius:4},
+        {label:'출력 토큰',data:days.map(function(d){return d.output_tokens}),borderColor:'#06b6d4',backgroundColor:'rgba(6,182,212,.08)',fill:true,tension:.4,borderWidth:2,pointRadius:0,pointHoverRadius:4},
+        {label:'비용 ($)',data:days.map(function(d){return d.cost}),type:'line',borderColor:'#f59e0b',backgroundColor:'transparent',tension:.4,borderWidth:1.5,borderDash:[4,4],pointRadius:0,pointHoverRadius:3,yAxisID:'y1'}
+    ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',padding:14,font:{size:10,weight:'600'},color:'#6b7280'}}},scales:{x:{grid:{display:false},ticks:{font:{size:9},color:'#9ca3af',maxTicksLimit:12}},y:{grid:{color:'#f0f1f5'},ticks:{font:{size:9},color:'#9ca3af',callback:function(v){if(v>=1000000)return(v/1000000).toFixed(1)+'M';if(v>=1000)return(v/1000).toFixed(0)+'K';return v}},beginAtZero:true},y1:{position:'right',grid:{display:false},ticks:{font:{size:9},color:'#f59e0b',callback:function(v){return'$'+v.toFixed(2)}},beginAtZero:true}}}})
+}
+function renderOvModelChart(models){
+    var pLabel=overviewRange.start?fmtDateKr(overviewRange.start)+'~'+fmtDateKr(overviewRange.end):($('#period-tabs .period-btn.active').text()||'');
+    $('#ov-model-period').text(pLabel);
+    if(!models.length){$('#ov-model-legend').html('<div style="text-align:center;padding:30px;color:var(--tx3);font-size:11px">데이터 없음</div>');return}
+    var mc=['#8b5cf6','#06b6d4','#22c55e','#f59e0b','#ef4444','#ec4899'];
+    var totalT=0;models.forEach(function(m){totalT+=m.total_tokens});
+    makeChart('chart-ov-model',{type:'doughnut',data:{labels:models.map(function(m){return m.label}),datasets:[{data:models.map(function(m){return m.total_tokens}),backgroundColor:mc.slice(0,models.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}});
+    var lh='';models.forEach(function(m,i){var pct=totalT>0?((m.total_tokens/totalT)*100).toFixed(1):'0';lh+='<div class="feat-item"><div class="feat-dot" style="background:'+mc[i%mc.length]+'"></div><span>'+esc(m.label)+'</span><span style="margin-left:auto;font-size:10px;color:var(--tx3)">'+fmtTokens(m.total_tokens)+' ('+pct+'%)</span><span class="feat-count">'+fmtCost(m.cost)+'</span></div>'});
+    $('#ov-model-legend').html(lh)
+}
+function renderOvServiceChart(services){
+    var pLabel=overviewRange.start?fmtDateKr(overviewRange.start)+'~'+fmtDateKr(overviewRange.end):($('#period-tabs .period-btn.active').text()||'');
+    $('#ov-service-period').text(pLabel);
+    if(!services.length){$('#ov-service-legend').html('<div style="text-align:center;padding:30px;color:var(--tx3);font-size:11px">데이터 없음</div>');return}
+    var totalT=0;services.forEach(function(s){totalT+=s.total_tokens});
+    makeChart('chart-ov-service',{type:'doughnut',data:{labels:services.map(function(s){return s.label}),datasets:[{data:services.map(function(s){return s.total_tokens}),backgroundColor:COLORS.slice(0,services.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}});
+    var lh='';services.forEach(function(s,i){var pct=totalT>0?((s.total_tokens/totalT)*100).toFixed(1):'0';lh+='<div class="feat-item"><div class="feat-dot" style="background:'+COLORS[i%COLORS.length]+'"></div><span>'+esc(s.label)+'</span><span style="margin-left:auto;font-size:10px;color:var(--tx3)">'+fmtTokens(s.total_tokens)+' ('+pct+'%)</span><span class="feat-count">'+num(s.calls)+'회</span></div>'});
+    $('#ov-service-legend').html(lh)
+}
+function renderOvDisk(disk){
+    $('#ov-disk-total-badge').text(esc(disk.total_size_fmt||''));
+    var dh='';
+    dh+='<div class="token-mini-card tmc-blue" style="min-width:100px"><div class="tmc-label">전체 용량</div><div class="tmc-value">'+esc(disk.total_size_fmt||'0B')+'</div></div>';
+    dh+='<div class="token-mini-card tmc-cyan" style="min-width:100px"><div class="tmc-label">전체 파일</div><div class="tmc-value">'+num(disk.total_files||0)+'</div></div>';
+    dh+='<div class="token-mini-card tmc-green" style="min-width:100px"><div class="tmc-label">사용자</div><div class="tmc-value">'+num((disk.users||[]).length)+'<span style="font-size:11px;color:var(--tx3);font-weight:500">명</span></div></div>';
+    $('#ov-disk-stats').html(dh);
+    var users=disk.users||[];
+    var top=users.slice(0,10);
+    if(!top.length){$('#ov-disk-bars').html('<div style="text-align:center;padding:30px;color:var(--tx3);font-size:11px">데이터 없음</div>');return}
+    var mx=top[0].size||1;
+    var bh='';
+    var fills=['df-1','df-2','df-3','df-4','df-5'];
+    top.forEach(function(u,i){
+        var pct=Math.max(2,Math.round((u.size/mx)*100));
+        var tp=disk.total_size>0?(u.size/disk.total_size*100).toFixed(1):'0';
+        bh+='<div class="disk-bar-item">';
+        bh+='<div class="disk-bar-rank'+(i<3?' top3':'')+'">'+(i+1)+'</div>';
+        bh+='<div class="disk-bar-user" title="'+esc(u.display_name||u.username)+'">'+esc(u.display_name||u.username)+'</div>';
+        bh+='<div class="disk-bar-track"><div class="disk-bar-fill '+fills[i%fills.length]+'" style="width:'+pct+'%"></div></div>';
+        bh+='<div class="disk-bar-size">'+esc(u.size_fmt||'0B')+'</div>';
+        bh+='<div class="disk-bar-pct">'+tp+'%</div>';
+        bh+='</div>';
+    });
+    $('#ov-disk-bars').html(bh)
+}
 
 // =========== USERS ===========
-function searchUsers(q){api('/api/admin/dashboard/search-users?q='+encodeURIComponent(q)).then(function(d){var $r=$('#search-results');$r.empty();searchIdx=-1;if(!d.users||!d.users.length){$r.html('<div class="search-empty">검색 결과 없음</div>').show();return}d.users.forEach(function(u,i){$r.append('<div class="search-item" onclick="selectUser(\''+esc(u.username)+'\')"><span class="user-avatar '+AV[i%3]+'" style="width:34px;height:34px;font-size:12px">'+esc((u.name||u.username||'?').charAt(0))+'</span><div><div style="font-weight:600;font-size:12px">'+esc(u.name||u.username)+'</div><div style="font-size:10px;color:var(--tx3)">'+esc(u.username)+(u.dept?' · '+esc(u.dept):'')+'</div></div></div>')});$r.show()})}
-function selectUser(username){$('#search-results').hide();udUsername=username;$('.nav-item').removeClass('active');$('.nav-item[data-tab="users"]').addClass('active');$('.tab-page').removeClass('active');$('#page-users').addClass('active');$('#user-search-panel').hide();$('#user-detail-panel').show();loadUserDetail(username)}
+function searchUsers(q){api('/api/admin/dashboard/search-users?q='+encodeURIComponent(q)).then(function(d){var $r=$('#search-results');$r.empty();searchIdx=-1;if(!d.users||!d.users.length){$r.html('<div class="search-empty">검색 결과 없음</div>').show();return}d.users.forEach(function(u,i){var dn=u.name||u.username||'?',dp=u.dept||'';$r.append('<div class="search-item" onclick="selectUser(\''+esc(u.username)+'\',\''+esc(dn).replace(/'/g,"\\'")+'\',\''+esc(dp).replace(/'/g,"\\'")+'\')"><span class="user-avatar '+AV[i%3]+'" style="width:34px;height:34px;font-size:12px">'+esc(dn.charAt(0))+'</span><div><div style="font-weight:600;font-size:12px">'+esc(dn)+'</div><div style="font-size:10px;color:var(--tx3)">'+esc(u.username)+(dp?' · '+esc(dp):'')+'</div></div></div>')});$r.show()})}
+function selectUser(username,displayName,dept){
+    $('#search-results').hide();udUsername=username;
+    saveRecentUser(username,displayName||username,dept||'');
+    $('.nav-item').removeClass('active');$('.nav-item[data-tab="users"]').addClass('active');$('.tab-page').removeClass('active');$('#page-users').addClass('active');$('#user-search-panel').hide();$('#user-detail-panel').show();loadUserDetail(username)}
+function saveRecentUser(username,name,dept){
+    $.ajax({url:BASE+'/api/admin/recent-searches',method:'POST',contentType:'application/json',data:JSON.stringify({username:username,name:name,dept:dept})})}
+function renderRecentUsers(){
+    api('/api/admin/recent-searches').then(function(d){
+        var list=d.recent||[];
+        if(!list.length){$('#recent-users-section').hide();return}
+        $('#recent-users-section').show();
+        var h='';
+        list.forEach(function(u,i){
+            var ago='';if(u.time){var diff=Date.now()-new Date(u.time).getTime();if(diff<60000)ago='방금';else if(diff<3600000)ago=Math.floor(diff/60000)+'분 전';else if(diff<86400000)ago=Math.floor(diff/3600000)+'시간 전';else ago=Math.floor(diff/86400000)+'일 전'}
+            h+='<div class="recent-user-card" onclick="selectUser(\''+esc(u.username)+'\',\''+esc(u.name||'').replace(/'/g,"\\'")+'\',\''+esc(u.dept||'').replace(/'/g,"\\'")+'\')">'+
+            '<span class="user-avatar '+AV[i%3]+'" style="width:30px;height:30px;font-size:11px">'+esc((u.name||'?').charAt(0))+'</span>'+
+            '<div><div class="ru-name">'+esc(u.name||u.username)+'</div><div class="ru-id">'+esc(u.username)+(u.dept?' · '+esc(u.dept):'')+'</div></div>'+
+            '<span class="ru-time">'+ago+'</span>'+
+            '</div>'});
+        $('#recent-users-grid').html(h)
+    }).fail(function(){$('#recent-users-section').hide()})}
 function loadUserDetail(username){
     var dp;if(udRange.start&&udRange.end)dp=dateParams(udRange);else{var pp=$('#ud-period-tabs .period-btn.active').data('p')||'month';var pr=periodToRange(pp);dp='&start_date='+fmtDate(pr.start)+'&end_date='+fmtDate(pr.end)}
     var periodLabel=$('#ud-period-tabs .period-btn.active').text()||'이번 달';if(udRange.start)periodLabel=fmtDateKr(udRange.start)+' ~ '+fmtDateKr(udRange.end);
@@ -408,19 +747,50 @@ function loadUserDetail(username){
         var sh='';sc.forEach(function(c){sh+='<div class="stat-card"><div class="stat-card-icon" style="background:'+c.iconBg+';color:'+c.iconColor+'"><span class="material-icons-outlined">'+c.icon+'</span></div><div class="stat-card-info"><div class="stat-label">'+c.label+'</div><div class="stat-value">'+num(c.value)+'</div></div></div>'});$('#ud-stats').html(sh);
         var days=d.daily||[];if(days.length){$('#ud-daily-range').text(days[0].date+' ~ '+days[days.length-1].date);makeChart('chart-ud-daily',{type:'line',data:{labels:days.map(function(x){return x.date}),datasets:[{label:'대화',data:days.map(function(x){return x.chats}),borderColor:'#4f6ef7',backgroundColor:'rgba(79,110,247,0.08)',fill:true,tension:.4,borderWidth:2.5,pointRadius:0}]},options:chartOpts()})}
         var months=d.monthly||[];$('#ud-monthly-label').text(new Date().getFullYear()+'년');makeChart('chart-ud-monthly',{type:'bar',data:{labels:months.map(function(x){return x.month+'월'}),datasets:[{label:'대화',data:months.map(function(x){return x.chats}),backgroundColor:'#4f6ef7',borderRadius:6,maxBarThickness:20}]},options:chartOpts()});
-        var fs=d.file_stats;$('#ud-file-stats').html('<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:4px 0"><div><span style="font-size:11px;color:var(--tx3)">파일 수</span><div style="font-size:22px;font-weight:800">'+num(fs.total_files)+'<span style="font-size:12px;color:var(--tx3);font-weight:500"> 개</span></div></div><div><span style="font-size:11px;color:var(--tx3)">전체 용량</span><div style="font-size:22px;font-weight:800">'+esc(fs.total_size_fmt)+'</div></div><div style="flex:1;min-width:180px"><span style="font-size:11px;color:var(--tx3)">마지막 활동</span><div style="font-size:14px;font-weight:600">'+(s.last_chat?new Date(s.last_chat).toLocaleString('ko-KR'):'-')+'</div></div></div>')})}
+        var fs=d.file_stats;$('#ud-file-stats').html('<div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:4px 0"><div><span style="font-size:11px;color:var(--tx3)">파일 수</span><div style="font-size:22px;font-weight:800">'+num(fs.total_files)+'<span style="font-size:12px;color:var(--tx3);font-weight:500"> 개</span></div></div><div><span style="font-size:11px;color:var(--tx3)">전체 용량</span><div style="font-size:22px;font-weight:800">'+esc(fs.total_size_fmt)+'</div></div><div style="flex:1;min-width:180px"><span style="font-size:11px;color:var(--tx3)">마지막 활동</span><div style="font-size:14px;font-weight:600">'+(s.last_chat?new Date(s.last_chat).toLocaleString('ko-KR'):'-')+'</div></div></div>');loadUserTokenDetail(username)})}
 
 // =========== STORAGE ===========
+var _storageData=null,_storagePage=1;
 function loadStorage(){$('#page-storage').html('<div class="dash-loading" style="height:260px"><div class="spin"></div><div class="spin-text">스토리지 분석 중...</div></div>');api('/api/admin/dashboard/storage').then(function(d){
+    _storageData=d;_storagePage=1;
     var h='<div class="top-bar"><div class="greeting"><h1>파일/스토리지</h1><p>사용자별 파일 사용량을 확인합니다</p></div></div>';
     h+='<div class="stat-row">';
     h+='<div class="stat-card"><div class="stat-card-icon" style="background:var(--blue-light);color:var(--blue)"><span class="material-icons-outlined">storage</span></div><div class="stat-card-info"><div class="stat-label">전체 용량</div><div class="stat-value">'+esc(d.total_size_fmt)+'</div></div></div>';
     h+='<div class="stat-card"><div class="stat-card-icon" style="background:var(--green-light);color:var(--green)"><span class="material-icons-outlined">description</span></div><div class="stat-card-info"><div class="stat-label">전체 파일</div><div class="stat-value">'+num(d.total_files)+'</div></div></div>';
     h+='<div class="stat-card"><div class="stat-card-icon" style="background:var(--amber-light);color:var(--amber)"><span class="material-icons-outlined">people</span></div><div class="stat-card-info"><div class="stat-label">사용자</div><div class="stat-value">'+num(d.users.length)+'</div></div></div></div>';
-    h+='<div class="card"><div class="card-header"><span class="card-title">사용자별 스토리지</span><span class="card-badge badge-blue">'+d.users.length+'명</span></div><div class="scroll-box" style="max-height:480px"><table class="data-table"><thead><tr><th style="width:32px">#</th><th>사용자</th><th>ID</th><th class="r">파일</th><th class="r">용량</th><th style="width:140px">비율</th></tr></thead><tbody>';
-    var mx=d.users.length?d.users[0].size:1;d.users.forEach(function(u,i){var pct=mx>0?Math.round((u.size/mx)*100):0;var tp=d.total_size>0?(u.size/d.total_size*100).toFixed(1):'0';var rk=i<3?'<span class="rank-medal rank-'+(i+1)+'">'+(i+1)+'</span>':'<span style="color:var(--tx3);font-size:10px">'+(i+1)+'</span>';
-    h+='<tr onclick="selectUser(\''+esc(u.username)+'\')"><td>'+rk+'</td><td><div style="display:flex;align-items:center"><span class="user-avatar '+AV[i%3]+'">'+esc((u.display_name||'?').charAt(0))+'</span><span class="user-name">'+esc(u.display_name)+'</span></div></td><td><span class="user-id">'+esc(u.username)+'</span></td><td class="r"><span class="badge badge-blue">'+num(u.files)+'</span></td><td class="r" style="font-weight:600;font-size:11px">'+esc(u.size_fmt)+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="storage-bar" style="flex:1"><div class="storage-fill" style="width:'+pct+'%"></div></div><span style="font-size:9px;color:var(--tx3);width:32px;text-align:right">'+tp+'%</span></div></td></tr>'});
-    h+='</tbody></table></div></div>';$('#page-storage').html(h)}).fail(function(){$('#page-storage').html('<div style="text-align:center;padding:60px;color:var(--tx3);font-size:13px">스토리지 정보를 불러올 수 없습니다</div>')})}
+    h+='<div class="card"><div class="card-header"><span class="card-title">사용자별 스토리지</span><span class="card-badge badge-blue" id="storage-user-badge">'+d.users.length+'명</span></div>';
+    h+='<table class="data-table"><thead><tr><th style="width:32px">#</th><th>사용자</th><th>ID</th><th class="r">파일</th><th class="r">용량</th><th style="width:140px">비율</th></tr></thead><tbody id="storage-tbody"></tbody></table>';
+    h+='<div class="td-pagination" id="storage-pagination"></div>';
+    h+='</div>';
+    $('#page-storage').html(h);_renderStoragePage(1)
+}).fail(function(){$('#page-storage').html('<div style="text-align:center;padding:60px;color:var(--tx3);font-size:13px">스토리지 정보를 불러올 수 없습니다</div>')})}
+function _renderStoragePage(page){
+    if(!_storageData)return;
+    var d=_storageData,users=d.users||[],PS=10;
+    var totalPages=Math.ceil(users.length/PS);
+    page=Math.max(1,Math.min(page,totalPages||1));_storagePage=page;
+    var start=(page-1)*PS,slice=users.slice(start,start+PS);
+    var mx=users.length?users[0].size:1;
+    var rh='';
+    if(!slice.length){rh='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--tx3)">데이터 없음</td></tr>'}
+    else{slice.forEach(function(u,idx){
+        var i=start+idx;
+        var pct=mx>0?Math.round((u.size/mx)*100):0;var tp=d.total_size>0?(u.size/d.total_size*100).toFixed(1):'0';
+        var rk=i<3?'<span class="rank-medal rank-'+(i+1)+'">'+(i+1)+'</span>':'<span style="color:var(--tx3);font-size:10px">'+(i+1)+'</span>';
+        var sdn=esc(u.display_name||'').replace(/'/g,"\\'");
+        rh+='<tr onclick="selectUser(\''+esc(u.username)+'\',\''+sdn+'\')"><td>'+rk+'</td><td><div style="display:flex;align-items:center"><span class="user-avatar '+AV[i%3]+'">'+esc((u.display_name||'?').charAt(0))+'</span><span class="user-name">'+esc(u.display_name)+'</span></div></td><td><span class="user-id">'+esc(u.username)+'</span></td><td class="r"><span class="badge badge-blue">'+num(u.files)+'</span></td><td class="r" style="font-weight:600;font-size:11px">'+esc(u.size_fmt)+'</td><td><div style="display:flex;align-items:center;gap:6px"><div class="storage-bar" style="flex:1"><div class="storage-fill" style="width:'+pct+'%"></div></div><span style="font-size:9px;color:var(--tx3);width:32px;text-align:right">'+tp+'%</span></div></td></tr>'
+    })}
+    $('#storage-tbody').html(rh);
+    var ph='';
+    if(totalPages>1){
+        ph+='<button class="td-page-btn" onclick="_renderStoragePage('+(page-1)+')"'+(page<=1?' disabled':'')+'>이전</button>';
+        var sP=Math.max(1,page-2),eP=Math.min(totalPages,sP+4);if(eP-sP<4)sP=Math.max(1,eP-4);
+        if(sP>1){ph+='<button class="td-page-btn" onclick="_renderStoragePage(1)">1</button>';if(sP>2)ph+='<span class="td-page-ellipsis">…</span>'}
+        for(var p=sP;p<=eP;p++){ph+='<button class="td-page-btn'+(p===page?' active':'')+'" onclick="_renderStoragePage('+p+')">'+p+'</button>'}
+        if(eP<totalPages){if(eP<totalPages-1)ph+='<span class="td-page-ellipsis">…</span>';ph+='<button class="td-page-btn" onclick="_renderStoragePage('+totalPages+')">'+totalPages+'</button>'}
+        ph+='<button class="td-page-btn" onclick="_renderStoragePage('+(page+1)+')"'+(page>=totalPages?' disabled':'')+'>다음</button>'}
+    $('#storage-pagination').html(ph)
+}
 
 // =========== TOKEN USAGE ===========
 function fmtTokens(n){if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return(n||0).toString()}
@@ -461,7 +831,298 @@ function renderTokenDailyChart(days){if(!days.length)return;$('#token-daily-rang
 function renderTokenMonthlyChart(months,year){$('#token-monthly-label').text(year+'년');makeChart('chart-token-monthly',{type:'bar',data:{labels:months.map(function(m){return m.month+'월'}),datasets:[{label:'입력 토큰',data:months.map(function(m){return m.input_tokens}),backgroundColor:'#4f6ef7',borderRadius:6,maxBarThickness:20},{label:'출력 토큰',data:months.map(function(m){return m.output_tokens}),backgroundColor:'#06b6d4',borderRadius:6,maxBarThickness:20}]},options:chartOpts()})}
 function renderTokenModelChart(models){if(!models.length){$('#token-model-legend').html('<div style="text-align:center;padding:30px;color:var(--tx3);font-size:11px">데이터 없음</div>');return}var mc=['#8b5cf6','#06b6d4','#22c55e','#f59e0b'];makeChart('chart-token-model',{type:'doughnut',data:{labels:models.map(function(m){return m.label}),datasets:[{data:models.map(function(m){return m.total_tokens}),backgroundColor:mc.slice(0,models.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});var lh='';models.forEach(function(m,i){lh+='<div class="feat-item"><div class="feat-dot" style="background:'+mc[i%mc.length]+'"></div><span>'+esc(m.label)+'</span><span style="margin-left:auto;font-size:10px;color:var(--tx3)">'+fmtTokens(m.total_tokens)+' ('+num(m.calls)+'회)</span><span class="feat-count">'+fmtCost(m.cost)+'</span></div>'});$('#token-model-legend').html(lh)}
 function renderTokenServiceChart(services){if(!services.length){$('#token-service-legend').html('<div style="text-align:center;padding:30px;color:var(--tx3);font-size:11px">데이터 없음</div>');return}makeChart('chart-token-service',{type:'doughnut',data:{labels:services.map(function(s){return s.label}),datasets:[{data:services.map(function(s){return s.total_tokens}),backgroundColor:COLORS.slice(0,services.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});var lh='';services.forEach(function(s,i){lh+='<div class="feat-item"><div class="feat-dot" style="background:'+COLORS[i%COLORS.length]+'"></div><span>'+esc(s.label)+'</span><span style="margin-left:auto;font-size:10px;color:var(--tx3)">'+fmtTokens(s.total_tokens)+' ('+num(s.calls)+'회)</span><span class="feat-count">'+fmtCost(s.cost)+'</span></div>'});$('#token-service-legend').html(lh)}
-function renderTokenUsersTable(users){$('#token-user-count-badge').text('Top '+users.length);if(!users.length){$('#token-user-tbody').html('<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--tx3)">데이터 없음</td></tr>');return}var h='';users.forEach(function(u,i){var rk=i<3?'<span class="rank-medal rank-'+(i+1)+'">'+(i+1)+'</span>':'<span style="color:var(--tx3);font-size:10px">'+(i+1)+'</span>';h+='<tr><td>'+rk+'</td><td><div style="display:flex;align-items:center"><span class="user-avatar '+AV[i%3]+'">'+esc((u.display_name||'?').charAt(0))+'</span><span class="user-name">'+esc(u.display_name)+'</span></div></td><td><span class="user-id">'+esc(u.username)+'</span></td><td class="r" style="font-size:11px">'+fmtTokens(u.input_tokens)+'</td><td class="r" style="font-size:11px">'+fmtTokens(u.output_tokens)+'</td><td class="r"><span class="badge badge-blue">'+fmtTokens(u.total_tokens)+'</span></td><td class="r"><span class="model-badge model-opus">'+num(u.opus_calls)+'</span></td><td class="r"><span class="model-badge model-sonnet">'+num(u.sonnet_calls)+'</span></td><td class="r" style="font-weight:600;font-size:11px">'+fmtCost(u.cost)+'</td></tr>'});$('#token-user-tbody').html(h)}
+function renderTokenUsersTable(users){$('#token-user-count-badge').text('Top '+users.length);if(!users.length){$('#token-user-tbody').html('<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--tx3)">데이터 없음</td></tr>');return}var h='';users.forEach(function(u,i){var rk=i<3?'<span class="rank-medal rank-'+(i+1)+'">'+(i+1)+'</span>':'<span style="color:var(--tx3);font-size:10px">'+(i+1)+'</span>';h+='<tr style="cursor:pointer" onclick="showTokenUserDetail(\''+esc(u.username)+'\')"><td>'+rk+'</td><td><div style="display:flex;align-items:center"><span class="user-avatar '+AV[i%3]+'">'+esc((u.display_name||'?').charAt(0))+'</span><span class="user-name clickable-user">'+esc(u.display_name)+'</span></div></td><td><span class="user-id">'+esc(u.username)+'</span></td><td class="r" style="font-size:11px">'+fmtTokens(u.input_tokens)+'</td><td class="r" style="font-size:11px">'+fmtTokens(u.output_tokens)+'</td><td class="r"><span class="badge badge-blue">'+fmtTokens(u.total_tokens)+'</span></td><td class="r"><span class="model-badge model-opus">'+num(u.opus_calls)+'</span></td><td class="r"><span class="model-badge model-sonnet">'+num(u.sonnet_calls)+'</span></td><td class="r" style="font-weight:600;font-size:11px">'+fmtCost(u.cost)+'</td></tr>'});$('#token-user-tbody').html(h)}
+
+// =========== TOKEN USER DETAIL (Modal) ===========
+var _tdCurrentUser='',_tdCurrentPage=1;
+function showTokenUserDetail(username,page){
+    page=page||1;_tdCurrentUser=username;_tdCurrentPage=page;
+    var dp;if(tokenRange.start&&tokenRange.end)dp=dateParams(tokenRange);else{var pr=periodToRange(tokenPeriod);dp='&start_date='+fmtDate(pr.start)+'&end_date='+fmtDate(pr.end)}
+    // Show loading modal immediately
+    if(!$('.token-detail-overlay').length){
+        $('body').append('<div class="token-detail-overlay" id="td-overlay"><div class="token-detail-modal"><div class="td-header"><div class="td-avatar">?</div><div class="td-user-info"><h3>로딩 중...</h3><p>'+esc(username)+'</p></div><button class="td-close" id="td-close"><span class="material-icons-outlined" style="font-size:18px">close</span></button></div><div class="td-body"><div style="text-align:center;padding:60px"><div class="spin" style="margin:0 auto"></div><div class="spin-text" style="margin-top:12px">토큰 사용 내역을 불러오는 중...</div></div></div></div></div>');
+        $('#td-overlay').on('click',function(e){if(e.target===this)$('#td-overlay').remove()});
+        $('#td-close').on('click',function(){$('#td-overlay').remove()});
+        $(document).on('keydown.td',function(e){if(e.key==='Escape'){$('#td-overlay').remove();$(document).off('keydown.td')}});
+    }
+    api('/api/admin/dashboard/token-user-detail?username='+encodeURIComponent(username)+'&page='+page+'&page_size=5'+dp).then(function(d){renderTokenDetailModal(d,page)}).fail(function(){$('.td-body').html('<div style="text-align:center;padding:60px;color:var(--red)"><span class="material-icons-outlined" style="font-size:36px">error_outline</span><p style="margin-top:8px;font-size:12px">데이터 로드 실패</p></div>')})}
+function renderTokenDetailModal(d,page){
+    var s=d.summary||{},dn=d.display_name||d.username,un=d.username;
+    var svcMap={'chat':'AI 대화','compress':'맥락 압축','rest_task':'스케줄 작업'};
+    var svcCls={'chat':'service-chat','compress':'service-compress','rest_task':'service-rest'};
+    // Header
+    var hdr='<div class="td-avatar">'+esc((dn||'?').charAt(0))+'</div><div class="td-user-info"><h3>'+esc(dn)+'</h3><p>'+esc(un)+' · 총 '+num(s.calls||0)+'회 호출</p></div><button class="td-close" id="td-close"><span class="material-icons-outlined" style="font-size:18px">close</span></button>';
+    // Summary cards
+    var body='<div class="td-summary-row">';
+    body+='<div class="td-summary-card"><div class="td-label">총 토큰</div><div class="td-value">'+fmtTokens(s.total_tokens||0)+'</div></div>';
+    body+='<div class="td-summary-card"><div class="td-label">입력</div><div class="td-value" style="color:var(--blue)">'+fmtTokens(s.input_tokens||0)+'</div></div>';
+    body+='<div class="td-summary-card"><div class="td-label">출력</div><div class="td-value" style="color:var(--cyan)">'+fmtTokens(s.output_tokens||0)+'</div></div>';
+    body+='<div class="td-summary-card"><div class="td-label">비용</div><div class="td-value" style="color:var(--purple)">'+fmtCost(s.cost||0)+'</div></div>';
+    body+='</div>';
+    // Charts
+    body+='<div class="chart-row chart-row-2" style="margin-bottom:0">';
+    body+='<div style="background:#f8f9fc;border-radius:12px;padding:16px;border:1px solid var(--border)"><div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--tx)">일별 토큰 추이</div><div style="height:180px;position:relative"><canvas id="chart-td-daily"></canvas></div></div>';
+    body+='<div style="background:#f8f9fc;border-radius:12px;padding:16px;border:1px solid var(--border)"><div style="font-size:12px;font-weight:700;margin-bottom:8px;color:var(--tx)">모델별 비율</div><div style="height:130px;position:relative"><canvas id="chart-td-model"></canvas></div><div id="td-model-legend" class="token-model-legend" style="margin-top:6px"></div></div>';
+    body+='</div>';
+    // Records table (고정 ID — 페이징 시 이 영역만 갱신)
+    body+='<div class="td-section-title" style="margin-top:18px"><span class="material-icons-outlined">receipt_long</span> 상세 호출 내역 <span style="font-size:11px;font-weight:500;color:var(--tx3);margin-left:4px" id="td-records-badge">('+num(d.total||0)+'건)</span></div>';
+    body+='<table class="td-records-table"><thead><tr><th>일시</th><th>서비스</th><th>모델</th><th class="r">입력</th><th class="r">출력</th><th class="r">합계</th><th class="r">비용</th></tr></thead><tbody id="td-records-tbody"></tbody></table>';
+    body+='<div class="td-pagination" id="td-records-pagination"></div>';
+    // Apply to modal
+    $('.td-header').html(hdr);$('.td-body').html(body);
+    $('#td-overlay').off('click').on('click',function(e){if(e.target===this){$('#td-overlay').remove();$(document).off('keydown.td')}});
+    $('#td-close').off('click').on('click',function(){$('#td-overlay').remove();$(document).off('keydown.td')});
+    // Render charts
+    var daily=d.daily||[];
+    if(daily.length){makeChart('chart-td-daily',{type:'line',data:{labels:daily.map(function(x){return x.date}),datasets:[{label:'토큰',data:daily.map(function(x){return x.tokens}),borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,.08)',fill:true,tension:.4,borderWidth:2,pointRadius:0}]},options:chartOpts()})}
+    var models=d.models||[],mc=['#8b5cf6','#06b6d4','#22c55e','#f59e0b'];
+    if(models.length){makeChart('chart-td-model',{type:'doughnut',data:{labels:models.map(function(m){return m.label}),datasets:[{data:models.map(function(m){return m.total_tokens}),backgroundColor:mc.slice(0,models.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});var lh='';models.forEach(function(m,i){lh+='<div class="token-model-item"><div class="token-model-dot" style="background:'+mc[i%mc.length]+'"></div>'+esc(m.label)+' <span style="color:var(--tx3)">'+fmtTokens(m.total_tokens)+'</span></div>'});$('#td-model-legend').html(lh)}
+    // 테이블+페이지네이션 렌더링
+    _renderTdRecords(d,page,un)}
+
+// 모달 내 테이블+페이지네이션만 렌더링
+function _renderTdRecords(d,page,un){
+    var svcMap={'chat':'AI 대화','compress':'맥락 압축','rest_task':'스케줄 작업'};
+    var svcCls={'chat':'service-chat','compress':'service-compress','rest_task':'service-rest'};
+    $('#td-records-badge').text('('+num(d.total||0)+'건)');
+    var rh='';
+    if(!d.records||!d.records.length){rh='<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--tx3)">데이터 없음</td></tr>'}
+    else{d.records.forEach(function(r){
+        var dt=r.created_at?new Date(r.created_at).toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+        var svc=svcMap[r.service_type]||r.service_type;var scls=svcCls[r.service_type]||'service-other';
+        var mLabel=(r.model||'').toLowerCase().indexOf('opus')>=0?'Opus':'Sonnet';var mCls=mLabel==='Opus'?'model-opus':'model-sonnet';
+        var tid=r.task_id||'',sid=r.session_id||'';
+        var svcHtml=(tid||sid)?'<span class="service-badge clickable '+scls+'" onclick="showQADetail(\''+esc(tid)+'\',\''+esc(sid)+'\')">'+esc(svc)+'</span>':'<span class="service-badge '+scls+'">'+esc(svc)+'</span>';
+        rh+='<tr><td style="font-size:10px;color:var(--tx2);white-space:nowrap">'+esc(dt)+'</td><td>'+svcHtml+'</td><td><span class="model-badge '+mCls+'">'+esc(mLabel)+'</span></td><td class="r" style="font-size:10px">'+fmtTokens(r.input_tokens)+'</td><td class="r" style="font-size:10px">'+fmtTokens(r.output_tokens)+'</td><td class="r"><span class="badge badge-blue" style="font-size:9px">'+fmtTokens(r.total_tokens)+'</span></td><td class="r" style="font-size:10px;font-weight:600">$'+r.cost_estimate.toFixed(4)+'</td></tr>'})}
+    $('#td-records-tbody').html(rh);
+    var TD_PS=5,totalPages=Math.ceil((d.total||0)/TD_PS),ph='';
+    if(totalPages>1){
+        ph+='<button class="td-page-btn" onclick="_pageTdRecords(\''+esc(un)+'\','+(page-1)+')"'+(page<=1?' disabled':'')+'>이전</button>';
+        var sP=Math.max(1,page-2),eP=Math.min(totalPages,sP+4);if(eP-sP<4)sP=Math.max(1,eP-4);
+        if(sP>1){ph+='<button class="td-page-btn" onclick="_pageTdRecords(\''+esc(un)+'\',1)">1</button>';if(sP>2)ph+='<span class="td-page-ellipsis">…</span>'}
+        for(var p=sP;p<=eP;p++){ph+='<button class="td-page-btn'+(p===page?' active':'')+'" onclick="_pageTdRecords(\''+esc(un)+'\','+p+')">'+p+'</button>'}
+        if(eP<totalPages){if(eP<totalPages-1)ph+='<span class="td-page-ellipsis">…</span>';ph+='<button class="td-page-btn" onclick="_pageTdRecords(\''+esc(un)+'\','+totalPages+')">'+totalPages+'</button>'}
+        ph+='<button class="td-page-btn" onclick="_pageTdRecords(\''+esc(un)+'\','+(page+1)+')"'+(page>=totalPages?' disabled':'')+'>다음</button>'}
+    $('#td-records-pagination').html(ph)
+}
+// 모달 페이징 전용: 테이블만 갱신 (헤더/요약/차트 유지)
+function _pageTdRecords(username,page){
+    page=page||1;_tdCurrentPage=page;
+    var dp;if(tokenRange.start&&tokenRange.end)dp=dateParams(tokenRange);else{var pr=periodToRange(tokenPeriod);dp='&start_date='+fmtDate(pr.start)+'&end_date='+fmtDate(pr.end)}
+    $('#td-records-tbody').html('<tr><td colspan="7" style="text-align:center;padding:20px"><div class="spin" style="margin:0 auto;width:20px;height:20px"></div></td></tr>');
+    api('/api/admin/dashboard/token-user-detail?username='+encodeURIComponent(username)+'&page='+page+'&page_size=5'+dp).then(function(d){_renderTdRecords(d,page,username)})
+}
+
+// =========== USER DETAIL TOKEN DASHBOARD ===========
+var _udTokenPage=1;
+function loadUserTokenDetail(username,page){
+    page=page||1;_udTokenPage=page;
+    var dp;if(udRange.start&&udRange.end)dp=dateParams(udRange);else{var pp=$('#ud-period-tabs .period-btn.active').data('p')||'month';var pr=periodToRange(pp);dp='&start_date='+fmtDate(pr.start)+'&end_date='+fmtDate(pr.end)}
+    $('#ud-token-stats').html('<div style="text-align:center;padding:30px;width:100%"><div class="spin" style="margin:0 auto"></div><div class="spin-text" style="margin-top:8px">토큰 사용량 분석 중...</div></div>');
+    api('/api/admin/dashboard/token-user-detail?username='+encodeURIComponent(username)+'&page='+page+'&page_size=5'+dp).then(function(d){
+        var s=d.summary||{},mc=['#8b5cf6','#06b6d4','#22c55e','#f59e0b','#ef4444','#ec4899'];
+        var svcMap={'chat':'AI 대화','compress':'맥락 압축','rest_task':'스케줄 작업'};
+        var svcCls={'chat':'service-chat','compress':'service-compress','rest_task':'service-rest'};
+        $('#ud-token-badge').text(num(s.calls||0)+'회 호출');
+        // Summary stat cards with percentage
+        var totalT=s.total_tokens||0,inT=s.input_tokens||0,outT=s.output_tokens||0;
+        var inPct=totalT>0?((inT/totalT)*100).toFixed(1):'0',outPct=totalT>0?((outT/totalT)*100).toFixed(1):'0';
+        var avgPerCall=s.calls>0?Math.round(totalT/s.calls):0;
+        var costPerCall=s.calls>0?(s.cost/s.calls):0;
+        var sh='';
+        sh+='<div class="stat-card"><div class="stat-card-icon" style="background:#f0e6ff;color:var(--purple)"><span class="material-icons-outlined">toll</span></div><div class="stat-card-info"><div class="stat-label">총 토큰</div><div class="stat-value">'+fmtTokens(totalT)+'</div><div class="stat-sub">호출당 평균 '+fmtTokens(avgPerCall)+'</div></div></div>';
+        sh+='<div class="stat-card"><div class="stat-card-icon" style="background:var(--blue-light);color:var(--blue)"><span class="material-icons-outlined">input</span></div><div class="stat-card-info"><div class="stat-label">입력 토큰</div><div class="stat-value">'+fmtTokens(inT)+'</div><div class="stat-sub"><span class="up">'+inPct+'%</span> of total</div></div></div>';
+        sh+='<div class="stat-card"><div class="stat-card-icon" style="background:var(--green-light);color:var(--green)"><span class="material-icons-outlined">output</span></div><div class="stat-card-info"><div class="stat-label">출력 토큰</div><div class="stat-value">'+fmtTokens(outT)+'</div><div class="stat-sub"><span class="up">'+outPct+'%</span> of total</div></div></div>';
+        sh+='<div class="stat-card"><div class="stat-card-icon" style="background:var(--amber-light);color:var(--amber)"><span class="material-icons-outlined">payments</span></div><div class="stat-card-info"><div class="stat-label">총 비용</div><div class="stat-value">'+fmtCost(s.cost||0)+'</div><div class="stat-sub">호출당 $'+costPerCall.toFixed(4)+'</div></div></div>';
+        sh+='<div class="stat-card"><div class="stat-card-icon" style="background:var(--red-light);color:var(--red)"><span class="material-icons-outlined">api</span></div><div class="stat-card-info"><div class="stat-label">API 호출</div><div class="stat-value">'+num(s.calls||0)+'<span style="font-size:11px;color:var(--tx3);font-weight:500">회</span></div></div></div>';
+        $('#ud-token-stats').html(sh);
+
+        // Chart 1: Daily I/O tokens (stacked area)
+        var dailyIO=d.daily_io||[],daily=d.daily||[];
+        if(dailyIO.length){makeChart('chart-ud-token-daily',{type:'line',data:{labels:dailyIO.map(function(x){return x.date}),datasets:[{label:'입력 토큰',data:dailyIO.map(function(x){return x.input}),borderColor:'#4f6ef7',backgroundColor:'rgba(79,110,247,.08)',fill:true,tension:.4,borderWidth:2,pointRadius:0,pointHoverRadius:4},{label:'출력 토큰',data:dailyIO.map(function(x){return x.output}),borderColor:'#06b6d4',backgroundColor:'rgba(6,182,212,.08)',fill:true,tension:.4,borderWidth:2,pointRadius:0,pointHoverRadius:4}]},options:chartOpts()})}
+        else if(daily.length){makeChart('chart-ud-token-daily',{type:'line',data:{labels:daily.map(function(x){return x.date}),datasets:[{label:'토큰',data:daily.map(function(x){return x.tokens}),borderColor:'#8b5cf6',backgroundColor:'rgba(139,92,246,.08)',fill:true,tension:.4,borderWidth:2,pointRadius:0}]},options:chartOpts()})}
+
+        // Chart 2: Model donut
+        var models=d.models||[];
+        if(models.length){makeChart('chart-ud-token-model',{type:'doughnut',data:{labels:models.map(function(m){return m.label}),datasets:[{data:models.map(function(m){return m.total_tokens}),backgroundColor:mc.slice(0,models.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
+            var lh='';models.forEach(function(m,i){var pct=totalT>0?((m.total_tokens/totalT)*100).toFixed(1):'0';lh+='<div class="feat-item"><div class="feat-dot" style="background:'+mc[i%mc.length]+'"></div><span>'+esc(m.label)+'</span><span style="margin-left:auto;font-size:10px;color:var(--tx3)">'+fmtTokens(m.total_tokens)+' ('+pct+'%)</span><span class="feat-count">'+num(m.calls)+'회</span></div>'});$('#ud-token-model-legend').html(lh)
+        }else{$('#ud-token-model-legend').html('<div style="text-align:center;padding:20px;color:var(--tx3);font-size:11px">데이터 없음</div>')}
+
+        // Chart 3: Service donut
+        var services=d.services||[];
+        if(services.length){makeChart('chart-ud-token-service',{type:'doughnut',data:{labels:services.map(function(sv){return sv.label}),datasets:[{data:services.map(function(sv){return sv.total_tokens}),backgroundColor:COLORS.slice(0,services.length),borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
+            var sl='';services.forEach(function(sv,i){sl+='<div class="feat-item"><div class="feat-dot" style="background:'+COLORS[i%COLORS.length]+'"></div><span>'+esc(sv.label)+'</span><span style="margin-left:auto;font-size:10px;color:var(--tx3)">'+fmtTokens(sv.total_tokens)+' ('+num(sv.calls)+'회)</span><span class="feat-count">'+fmtCost(sv.cost)+'</span></div>'});$('#ud-token-service-legend').html(sl)
+        }else{$('#ud-token-service-legend').html('<div style="text-align:center;padding:20px;color:var(--tx3);font-size:11px">데이터 없음</div>')}
+
+        // Chart 4: Daily calls & cost
+        if(daily.length){makeChart('chart-ud-token-cost',{type:'bar',data:{labels:daily.map(function(x){return x.date}),datasets:[{label:'호출 수',data:daily.map(function(x){return x.calls}),backgroundColor:'rgba(79,110,247,.6)',borderRadius:4,maxBarThickness:12,yAxisID:'y'},{label:'비용 ($)',data:daily.map(function(x){return x.cost}),type:'line',borderColor:'#f59e0b',backgroundColor:'transparent',tension:.4,borderWidth:2,pointRadius:0,yAxisID:'y1'}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true,pointStyle:'circle',padding:16,font:{size:10,weight:'600'},color:'#6b7280'}}},scales:{x:{grid:{display:false},ticks:{font:{size:9},color:'#9ca3af',maxTicksLimit:12}},y:{position:'left',grid:{color:'#f0f1f5'},ticks:{font:{size:9},color:'#9ca3af'},beginAtZero:true,title:{display:true,text:'호출',font:{size:9},color:'#9ca3af'}},y1:{position:'right',grid:{display:false},ticks:{font:{size:9},color:'#f59e0b',callback:function(v){return'$'+v.toFixed(2)}},beginAtZero:true,title:{display:true,text:'비용',font:{size:9},color:'#f59e0b'}}}}})}
+
+        // Records table (초기 로드 시 테이블도 렌더링)
+        _renderUdTokenRecords(d,page,username)
+    }).fail(function(){$('#ud-token-stats').html('<div style="text-align:center;padding:30px;color:var(--tx3);font-size:11px">토큰 데이터를 불러올 수 없습니다</div>')})}
+
+// 상세 호출 내역 테이블+페이지네이션만 렌더링 (차트/요약 건드리지 않음)
+function _renderUdTokenRecords(d,page,username){
+    var svcMap={'chat':'AI 대화','compress':'맥락 압축','rest_task':'스케줄 작업'};
+    var svcCls={'chat':'service-chat','compress':'service-compress','rest_task':'service-rest'};
+    $('#ud-token-records-badge').text(num(d.total||0)+'건');
+    var rh='';
+    if(!d.records||!d.records.length){rh='<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--tx3)">데이터 없음</td></tr>'}
+    else{d.records.forEach(function(r){
+        var dt=r.created_at?new Date(r.created_at).toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+        var svc=svcMap[r.service_type]||r.service_type;var scls=svcCls[r.service_type]||'service-other';
+        var mLabel=(r.model||'').toLowerCase().indexOf('opus')>=0?'Opus':'Sonnet';var mCls=mLabel==='Opus'?'model-opus':'model-sonnet';
+        var tid=r.task_id||'',sid=r.session_id||'';
+        var svcHtml=(tid||sid)?'<span class="service-badge clickable '+scls+'" onclick="showQADetail(\''+esc(tid)+'\',\''+esc(sid)+'\')">'+esc(svc)+'</span>':'<span class="service-badge '+scls+'">'+esc(svc)+'</span>';
+        rh+='<tr><td style="font-size:10px;color:var(--tx2);white-space:nowrap">'+esc(dt)+'</td><td>'+svcHtml+'</td><td><span class="model-badge '+mCls+'">'+esc(mLabel)+'</span></td><td class="r" style="font-size:10px">'+fmtTokens(r.input_tokens)+'</td><td class="r" style="font-size:10px">'+fmtTokens(r.output_tokens)+'</td><td class="r"><span class="badge badge-blue" style="font-size:9px">'+fmtTokens(r.total_tokens)+'</span></td><td class="r" style="font-size:10px;font-weight:600">$'+r.cost_estimate.toFixed(4)+'</td></tr>'})}
+    $('#ud-token-records-tbody').html(rh);
+    var UD_PS=5,totalPages=Math.ceil((d.total||0)/UD_PS),ph='';
+    if(totalPages>1){
+        ph+='<button class="td-page-btn" onclick="_pageUdTokenRecords(\''+esc(username)+'\','+(page-1)+')"'+(page<=1?' disabled':'')+'>이전</button>';
+        var sP=Math.max(1,page-2),eP=Math.min(totalPages,sP+4);if(eP-sP<4)sP=Math.max(1,eP-4);
+        if(sP>1){ph+='<button class="td-page-btn" onclick="_pageUdTokenRecords(\''+esc(username)+'\',1)">1</button>';if(sP>2)ph+='<span class="td-page-ellipsis">…</span>'}
+        for(var p=sP;p<=eP;p++){ph+='<button class="td-page-btn'+(p===page?' active':'')+'" onclick="_pageUdTokenRecords(\''+esc(username)+'\','+p+')">'+p+'</button>'}
+        if(eP<totalPages){if(eP<totalPages-1)ph+='<span class="td-page-ellipsis">…</span>';ph+='<button class="td-page-btn" onclick="_pageUdTokenRecords(\''+esc(username)+'\','+totalPages+')">'+totalPages+'</button>'}
+        ph+='<button class="td-page-btn" onclick="_pageUdTokenRecords(\''+esc(username)+'\','+(page+1)+')"'+(page>=totalPages?' disabled':'')+'>다음</button>'}
+    $('#ud-token-pagination').html(ph)
+}
+// 페이징 전용: 테이블만 갱신 (요약/차트 유지)
+function _pageUdTokenRecords(username,page){
+    page=page||1;_udTokenPage=page;
+    var dp;if(udRange.start&&udRange.end)dp=dateParams(udRange);else{var pp=$('#ud-period-tabs .period-btn.active').data('p')||'month';var pr=periodToRange(pp);dp='&start_date='+fmtDate(pr.start)+'&end_date='+fmtDate(pr.end)}
+    $('#ud-token-records-tbody').html('<tr><td colspan="7" style="text-align:center;padding:20px"><div class="spin" style="margin:0 auto;width:20px;height:20px"></div></td></tr>');
+    api('/api/admin/dashboard/token-user-detail?username='+encodeURIComponent(username)+'&page='+page+'&page_size=5'+dp).then(function(d){_renderUdTokenRecords(d,page,username)})
+}
+
+// =========== Q&A DETAIL LAYER ===========
+function showQADetail(taskId,sessionId){
+    if(!taskId&&!sessionId)return;
+    // 로딩 오버레이
+    if($('.qa-overlay').length)$('.qa-overlay').remove();
+    $('body').append('<div class="qa-overlay" id="qa-overlay"><div class="qa-modal"><div class="qa-header"><div class="qa-header-icon"><span class="material-icons-outlined" style="font-size:20px">question_answer</span></div><div class="qa-header-info"><h3>질의/응답 내역</h3><p>로딩 중...</p></div><button class="qa-close" id="qa-close"><span class="material-icons-outlined" style="font-size:18px">close</span></button></div><div class="qa-body"><div style="text-align:center;padding:60px"><div class="spin" style="margin:0 auto"></div><div class="spin-text" style="margin-top:12px">대화 내역을 불러오는 중...</div></div></div></div></div>');
+    $('#qa-overlay').on('click',function(e){if(e.target===this)$(this).remove()});
+    $('#qa-close').on('click',function(){$('#qa-overlay').remove()});
+    $(document).on('keydown.qa',function(e){if(e.key==='Escape'){$('#qa-overlay').remove();$(document).off('keydown.qa')}});
+    var params=[];if(taskId)params.push('task_id='+encodeURIComponent(taskId));if(sessionId)params.push('session_id='+encodeURIComponent(sessionId));
+    api('/api/admin/dashboard/task-detail?'+params.join('&')).then(function(d){
+        _renderQADetail(d)
+    }).fail(function(){
+        $('.qa-body').html('<div style="text-align:center;padding:60px;color:var(--red)"><span class="material-icons-outlined" style="font-size:36px">error_outline</span><p style="margin-top:8px;font-size:12px">대화 내역을 불러올 수 없습니다</p></div>')
+    })
+}
+function _renderQADetail(d){
+    var dn=d.display_name||d.username||'';
+    var startAt=d.started_at?new Date(d.started_at).toLocaleString('ko-KR'):'';
+    var dur=d.duration_seconds?d.duration_seconds+'초':'';
+    var statusMap={'done':'완료','incomplete':'미완료','running':'진행 중','error':'오류'};
+    var statusTx=statusMap[d.status]||d.status||'';
+    // Header info
+    $('.qa-header-info h3').text(dn?(dn+' 님의 대화'):'질의/응답 내역');
+    $('.qa-header-info p').text((d.username||'')+(startAt?' · '+startAt:''));
+    // Re-bind close
+    $('#qa-overlay').off('click').on('click',function(e){if(e.target===this){$(this).remove();$(document).off('keydown.qa')}});
+    $('#qa-close').off('click').on('click',function(){$('#qa-overlay').remove();$(document).off('keydown.qa')});
+    var body='';
+    // Meta info
+    body+='<div class="qa-meta">';
+    if(d.model)body+='<div class="qa-meta-item"><span class="material-icons-outlined">smart_toy</span>'+esc(d.model)+'</div>';
+    if(statusTx)body+='<div class="qa-meta-item"><span class="material-icons-outlined">flag</span>'+esc(statusTx)+'</div>';
+    if(dur)body+='<div class="qa-meta-item"><span class="material-icons-outlined">timer</span>'+esc(dur)+'</div>';
+    if(d.task_id)body+='<div class="qa-meta-item"><span class="material-icons-outlined">tag</span>'+esc(d.task_id.substring(0,8))+'…</div>';
+    body+='</div>';
+    // 대화 메시지가 있으면 대화형으로 표시
+    var msgs=d.messages||[];
+    if(msgs.length){
+        body+='<div class="qa-section"><div class="qa-section-label"><span class="material-icons-outlined">forum</span> 대화 내역</div>';
+        body+='<div class="qa-conversation">';
+        msgs.forEach(function(m){
+            var role=m.role||'';
+            if(role==='system')return;
+            var isUser=role==='user';
+            var avCls=isUser?'user-av':'ai-av';
+            var avIcon=isUser?'P':'AI';
+            var roleName=isUser?'사용자':'AI 응답';
+            var content='';
+            if(typeof m.content==='string')content=m.content;
+            else if(Array.isArray(m.content)){m.content.forEach(function(c){if(c.type==='text')content+=(content?'\n':'')+c.text})}
+            if(!content)return;
+            // 긴 내용은 축약하지 않고 전체 표시 (스크롤)
+            body+='<div class="qa-conv-item"><div class="qa-conv-avatar '+avCls+'">'+avIcon+'</div><div class="qa-conv-content"><div class="qa-conv-role">'+roleName+'</div><div class="qa-conv-text">'+esc(content)+'</div></div></div>';
+        });
+        body+='</div></div>';
+    }else{
+        // 대화 메시지 없으면 task의 message/response_summary 사용
+        if(d.message){
+            body+='<div class="qa-section"><div class="qa-section-label"><span class="material-icons-outlined">person</span> 사용자 질의</div>';
+            body+='<div class="qa-bubble user-msg">'+esc(d.message)+'</div></div>';
+        }
+        if(d.response_summary){
+            body+='<div class="qa-section"><div class="qa-section-label"><span class="material-icons-outlined">smart_toy</span> AI 응답 (요약)</div>';
+            body+='<div class="qa-bubble ai-msg">'+esc(d.response_summary)+'</div></div>';
+        }
+        if(!d.message&&!d.response_summary){
+            body+='<div style="text-align:center;padding:40px;color:var(--tx3)"><span class="material-icons-outlined" style="font-size:36px">chat_bubble_outline</span><p style="margin-top:8px;font-size:12px">대화 내역을 찾을 수 없습니다</p></div>';
+        }
+    }
+    $('.qa-body').html(body)
+}
+
+// =========== REQUEST LOGS ===========
+var _rlPage=1;
+function fmtDuration(s){if(!s||s<=0)return'-';if(s<60)return s.toFixed(1)+'초';var m=Math.floor(s/60);return m+'분 '+(s%60).toFixed(0)+'초'}
+function loadRequestLogs(page){
+    page=page||1;_rlPage=page;
+    var q=$('#rl-search').val()||'',u=$('#rl-user-filter').val()||'';
+    var dp='';if(rlRange.start&&rlRange.end)dp=dateParams(rlRange);
+    var url='/api/admin/dashboard/request-logs?page='+page+'&page_size=10'+dp;
+    if(q)url+='&q='+encodeURIComponent(q);
+    if(u)url+='&username='+encodeURIComponent(u);
+    $('#rl-list').html('<div style="text-align:center;padding:60px"><div class="spin" style="margin:0 auto"></div><div class="spin-text" style="margin-top:12px">요청 로그를 불러오는 중...</div></div>');
+    $('#rl-pagination').empty();
+    api(url).then(function(d){renderRequestLogs(d)}).fail(function(){$('#rl-list').html('<div style="text-align:center;padding:60px;color:var(--red)"><span class="material-icons-outlined" style="font-size:36px">error_outline</span><p style="margin-top:8px;font-size:12px">로그 데이터를 불러올 수 없습니다</p></div>')})}
+function renderRequestLogs(d){
+    var logs=d.logs||[],total=d.total||0,page=d.page||1,totalPages=d.total_pages||1;
+    var svcMap={'chat':'AI 대화','compress':'맥락 압축','rest_task':'스케줄 작업'};
+    $('#rl-total-info').text('전체 '+num(total)+'건');
+    if(!logs.length){$('#rl-list').html('<div style="text-align:center;padding:80px 20px;color:var(--tx3)"><span class="material-icons-outlined" style="font-size:56px;color:#e0e4ee;display:block;margin-bottom:12px">inbox</span><p style="font-size:14px;font-weight:600;margin-bottom:4px">요청 로그가 없습니다</p><p style="font-size:11px">검색 조건을 변경해보세요</p></div>');$('#rl-pagination').empty();return}
+    var h='';
+    logs.forEach(function(log,i){
+        var statusCls='rl-status-'+(log.status||'done');
+        var statusLabel={'done':'완료','running':'진행중','error':'오류','cancelled':'취소'}[log.status]||log.status;
+        var dt=log.started_at?new Date(log.started_at).toLocaleString('ko-KR',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}):'';
+        var mLabel=log.model_label||'';var mCls=(mLabel==='Opus')?'model-opus':'model-sonnet';
+        var tid=esc(log.task_id||''),sid=esc(log.session_id||'');
+        h+='<div class="rl-card" onclick="showQADetail(\''+tid+'\',\''+sid+'\')">';
+        h+='<div class="rl-card-header">';
+        h+='<div class="rl-card-user"><span class="rl-status '+statusCls+'" title="'+esc(statusLabel)+'"></span><span class="user-avatar '+AV[i%3]+'" style="width:28px;height:28px;font-size:10px">'+esc((log.display_name||'?').charAt(0))+'</span><div><div style="font-weight:600;font-size:11px">'+esc(log.display_name)+'</div><div style="font-size:9px;color:var(--tx3)">'+esc(log.username)+(log.dept?' · '+esc(log.dept):'')+'</div></div></div>';
+        h+='<div class="rl-card-meta">';
+        if(mLabel)h+='<span class="model-badge '+mCls+'">'+esc(mLabel)+'</span>';
+        h+='<span class="rl-card-meta-item"><span class="material-icons-outlined">schedule</span>'+esc(dt)+'</span>';
+        if(log.duration_seconds)h+='<span class="rl-card-meta-item"><span class="material-icons-outlined">timer</span>'+fmtDuration(log.duration_seconds)+'</span>';
+        h+='</div></div>';
+        h+='<div class="rl-card-msg">'+esc(log.message||'(내용 없음)')+'</div>';
+        if(log.response_summary)h+='<div class="rl-card-resp">'+esc(log.response_summary)+'</div>';
+        h+='<div class="rl-card-footer">';
+        if(log.total_tokens)h+='<span class="rl-token-chip"><span class="material-icons-outlined">toll</span>'+fmtTokens(log.total_tokens)+'</span>';
+        if(log.input_tokens)h+='<span class="rl-token-chip" style="color:var(--blue)"><span class="material-icons-outlined">input</span>'+fmtTokens(log.input_tokens)+'</span>';
+        if(log.output_tokens)h+='<span class="rl-token-chip" style="color:var(--cyan)"><span class="material-icons-outlined">output</span>'+fmtTokens(log.output_tokens)+'</span>';
+        if(log.cost)h+='<span class="rl-token-chip" style="color:var(--purple)"><span class="material-icons-outlined">payments</span>$'+log.cost.toFixed(4)+'</span>';
+        if(log.token_calls)h+='<span class="rl-token-chip" style="color:var(--tx3)"><span class="material-icons-outlined">api</span>'+num(log.token_calls)+'회</span>';
+        if(log.models_used&&log.models_used.length>1){var ml=log.models_used.map(function(m){return m.toLowerCase().indexOf('opus')>=0?'Opus':'Sonnet'});h+='<span class="rl-token-chip" style="color:var(--amber)">'+ml.join(', ')+'</span>'}
+        h+='</div>';
+        h+='</div>'
+    });
+    $('#rl-list').html(h);
+    // Pagination
+    var ph='';
+    ph+='<button class="rl-page-btn" onclick="loadRequestLogs('+(page-1)+')"'+(page<=1?' disabled':'')+'><span class="material-icons-outlined" style="font-size:16px">chevron_left</span></button>';
+    var startP=Math.max(1,page-3),endP=Math.min(totalPages,page+3);
+    if(startP>1){ph+='<button class="rl-page-btn" onclick="loadRequestLogs(1)">1</button>';if(startP>2)ph+='<span class="rl-page-info">...</span>'}
+    for(var p=startP;p<=endP;p++){ph+='<button class="rl-page-btn'+(p===page?' active':'')+'" onclick="loadRequestLogs('+p+')">'+p+'</button>'}
+    if(endP<totalPages){if(endP<totalPages-1)ph+='<span class="rl-page-info">...</span>';ph+='<button class="rl-page-btn" onclick="loadRequestLogs('+totalPages+')">'+totalPages+'</button>'}
+    ph+='<button class="rl-page-btn" onclick="loadRequestLogs('+(page+1)+')"'+(page>=totalPages?' disabled':'')+'><span class="material-icons-outlined" style="font-size:16px">chevron_right</span></button>';
+    ph+='<span class="rl-page-info" style="margin-left:8px">'+page+' / '+totalPages+'</span>';
+    $('#rl-pagination').html(ph)}
 </script>
 </body>
 </html>

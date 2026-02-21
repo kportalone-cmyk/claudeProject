@@ -53,6 +53,7 @@ var ws=null,currentPath='.',isProcessing=false,$currentBubble=null,currentSessio
 var shareMode=null; // null=내 폴더, {owner:'xxx',rootPath:'yyy',perm:'read|write'} = 공유 모드
 var activeProjectId='',activeProjectName=''; // 현재 활성 프로젝트
 var _modifiedFiles=[]; // 작업 중 변경된 파일 수집
+var _pendingContinueAfterCompress=false; // 압축 후 자동 계속 진행 플래그
 var TOOL_ICONS={list_files:'📂',read_file:'📄',write_file:'✏️',edit_file:'🔧',delete_file:'🗑️',create_directory:'📁',run_command:'⚡',search_files:'🔍',file_info:'ℹ️',read_excel:'📊',web_search:'🌐',write_temp_file:'📝',figma_get_file:'🎨',figma_get_images:'🖼️',figma_get_styles:'🎭'};
 var FILE_ICONS={py:'🐍',js:'📜',ts:'📘',java:'☕',html:'🌐',css:'🎨',json:'📋',md:'📝',txt:'📄',yml:'⚙️',sh:'⚡',sql:'🗃️',csv:'📊',xlsx:'📊',xls:'📊',docx:'📄',jpg:'🖼️',png:'🖼️',gif:'🖼️',zip:'📦'};
 
@@ -228,6 +229,44 @@ function handleMsg(d){
             updateProgress(0,'재시도 중...');
             showGlobalProgress('재시도 중...');
             break;
+        case 'auto_compress_start':
+            ensureBubble();
+            $currentBubble.find('.auto-compress-banner').remove();
+            $currentBubble.append(
+                '<div class="auto-compress-banner" style="padding:14px 16px;margin:10px 0;background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(59,130,246,.06));border:1px solid rgba(139,92,246,.18);border-radius:12px;font-size:13px;line-height:1.6;animation:acFadeIn .4s ease">'+
+                '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
+                '<div class="ac-spinner" style="width:18px;height:18px;border:2px solid rgba(139,92,246,.2);border-top-color:#8b5cf6;border-radius:50%;animation:acSpin .8s linear infinite"></div>'+
+                '<span style="font-weight:600;color:#7c3aed">맥락 자동 압축 중</span></div>'+
+                '<div style="color:var(--tx2);font-size:12px">대화가 <strong>'+d.turns+'턴</strong>을 초과하여 맥락을 자동 압축하고 있습니다. 잠시만 기다려주세요.</div>'+
+                '</div>'
+            );
+            if(!document.getElementById('ac-style')){
+                $('head').append(
+                    '<style id="ac-style">'+
+                    '@keyframes acSpin{to{transform:rotate(360deg)}}'+
+                    '@keyframes acFadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}'+
+                    '@keyframes acDone{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}'+
+                    '</style>'
+                );
+            }
+            showGlobalProgress('🗜️ 맥락 자동 압축 중...');
+            scrollBottom();
+            break;
+        case 'auto_compress':
+            ensureBubble();
+            $currentBubble.find('.auto-compress-banner').remove();
+            $currentBubble.append(
+                '<div class="auto-compress-banner" style="padding:14px 16px;margin:10px 0;background:linear-gradient(135deg,rgba(16,185,129,.06),rgba(59,130,246,.06));border:1px solid rgba(16,185,129,.2);border-radius:12px;font-size:13px;line-height:1.6;animation:acDone .4s ease">'+
+                '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+                '<span style="font-size:16px">✅</span>'+
+                '<span style="font-weight:600;color:#059669">맥락 압축 완료</span></div>'+
+                '<div style="color:var(--tx2);font-size:12px">이전 대화를 요약하여 맥락을 유지한 채 압축했습니다. <span style="color:var(--tx3)">(' + d.old_count + '개 → ' + d.new_count + '개 메시지)</span></div>'+
+                '</div>'
+            );
+            showGlobalProgress('✅ 맥락 압축 완료');
+            setTimeout(function(){hideGlobalProgress()},3000);
+            scrollBottom();
+            break;
         case 'text_start':ensureBubble();removeProgress();hideWorking();streamingRawText='';
             showGlobalProgress(T('progress_generating','응답을 생성하고 있습니다...'));
             if(!$currentBubble.find('.streaming-text').length){
@@ -269,9 +308,22 @@ function handleMsg(d){
             if(d.success){
                 ensureBubble();
                 $currentBubble.append('<div style="text-align:center;padding:10px;margin:8px 0;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;font-size:12px;color:#065f46">✅ '+esc(d.message)+'</div>');
+                // 압축 후 자동 계속 진행
+                if(_pendingContinueAfterCompress){
+                    _pendingContinueAfterCompress=false;
+                    scrollBottom();finishProcessing();
+                    setTimeout(function(){
+                        $('#msg-input').val('대화가 압축되었습니다. 이전에 완료되지 않은 작업을 중단된 시점부터 이어서 계속 진행해주세요. 이미 완료된 작업은 반복하지 말고, 남은 작업만 수행하세요.');
+                        sendMessage();
+                    },500);
+                    break;
+                }
             } else {
                 ensureBubble();
                 $currentBubble.append('<div class="err-box">⚠️ '+esc(d.message)+'</div>');
+                if(_pendingContinueAfterCompress){
+                    _pendingContinueAfterCompress=false;
+                }
             }
             scrollBottom();finishProcessing();break;
         case 'done':
@@ -317,7 +369,16 @@ function handleMsg(d){
                 $currentBubble.append(panel);
                 scrollBottom();
             }
+            // 미완료 작업 복구 배너
+            if(d.incomplete && $currentBubble){
+                _showRecoveryBanner(d.incomplete_reason);
+            }
             finishProcessing();_modifiedFiles=[];
+            // 새 대화로 세션이 변경된 경우 이전 세션의 done은 무시
+            if(d.session_id && d.session_id!==currentSessionId){
+                // 이전 세션의 완료 메시지 — 로그 목록만 갱신
+                loadChatLogs(true);refreshFiles();break;
+            }
             if(d.session_id)currentSessionId=d.session_id;
             prependNewChatLog(d.task_id);refreshFiles();
             if(activeProjectId)loadProjectOutputs(activeProjectId);
@@ -351,7 +412,18 @@ function handleMsg(d){
             if(d.task_id) prependNewChatLog(d.task_id);
             refreshFiles();
             break;
-        case 'cleared':currentSessionId=d.session_id;$('#messages').html($('#welcome').length?$('#welcome').prop('outerHTML'):_welcomeHtml);applyI18n();finishProcessing();loadChatLogs(true);break;
+        case 'cleared':
+            // ── 새 대화: 최초 로그인 상태로 완전 초기화 ──
+            currentSessionId=d.session_id;
+            $currentBubble=null;streamingRawText='';lastSentMessage='';_modifiedFiles=[];
+            // 웰컴 화면 복원 (캐시된 원본 HTML 사용 — display:none 오염 방지)
+            $('#messages').html(_welcomeHtml);
+            $('#welcome').show();
+            applyI18n();
+            finishProcessing();
+            // 로그 목록 12개만 표시, active 없음
+            loadChatLogs(true);
+            break;
         case 'session_loaded':
             loadSessionMessages(d.messages);
             if(d.current_folder && d.current_folder!=='.'){
@@ -561,7 +633,7 @@ function _showStallNotice(){
             '<div class="stall-icon">⏸</div>'+
             '<div class="stall-body">'+
             '<div class="stall-title">응답 대기 중입니다</div>'+
-            '<div class="stall-desc">AI가 복잡한 작업을 처리하고 있어 시간이 걸리고 있습니다. <strong>기다리시면 자동으로 완료</strong>됩니다.<br>오랜 시간 진행되지 않는 경우, "계속 진행 요청"을 클릭하면 중단된 시점부터 다시 시작합니다. 다만 서버 상태에 따라 바로 진행되지 않을 수 있습니다.</div>'+
+            '<div class="stall-desc">AI가 복잡한 작업을 처리하고 있어 시간이 걸리고 있습니다. <strong>기다리시면 자동으로 완료</strong>됩니다.<br>일반적으로 1~2분 내에 응답이 오며, 복잡한 작업은 3~5분까지 걸릴 수 있습니다. <strong>5분 이상</strong> 진행되지 않는 경우, "계속 진행 요청"을 클릭하면 중단된 시점부터 다시 시작합니다.</div>'+
             '<div class="stall-actions">'+
             '<button class="stall-btn" onclick="_dismissStall()">확인</button>'+
             '<button class="stall-btn primary" onclick="_sendContinue()">▶ 계속 진행 요청</button>'+
@@ -594,6 +666,64 @@ function _dismissStall(){
     _stallTimer=setTimeout(function(){
         _showStallNotice();
     }, 30000);
+}
+
+// ================================================================
+// 미완료 작업 복구 배너 (Recovery Banner)
+// API 오류로 작업이 중간에 끊겼을 때 사용자에게 선택지 제공
+// ================================================================
+function _showRecoveryBanner(reason){
+    if(!$currentBubble) return;
+    $('#recovery-banner').remove();
+    var reasonText='',showCompress=false;
+    switch(reason){
+        case 'context_too_long':
+            reasonText='컨텍스트 길이 초과로 작업이 완료되지 않았습니다. 대화를 압축한 후 계속 진행하는 것을 권장합니다.';
+            showCompress=true;break;
+        case 'overloaded':
+            reasonText='AI 서버 과부하로 작업이 완료되지 않았습니다. 잠시 후 계속 진행하면 이어서 작업합니다.';break;
+        case 'connection_error':
+            reasonText='API 연결 오류로 작업이 완료되지 않았습니다. 네트워크 상태를 확인 후 계속 진행해주세요.';break;
+        case 'max_steps':
+            reasonText='작업이 최대 단계(10단계)에 도달했지만 아직 완료되지 않았습니다. 계속 진행하면 남은 작업을 이어서 수행합니다.';break;
+        default:
+            reasonText='API 오류로 작업이 완료되지 않았습니다. 계속 진행하면 중단된 시점부터 이어서 작업합니다.';
+    }
+    var html='<div id="recovery-banner" class="recovery-banner">'+
+        '<div class="recovery-icon">⚠️</div>'+
+        '<div class="recovery-body">'+
+        '<div class="recovery-title">작업이 완료되지 않았습니다</div>'+
+        '<div class="recovery-desc">'+esc(reasonText)+'</div>'+
+        '<div class="recovery-actions">'+
+        '<button class="recovery-btn primary" onclick="_recoveryContinue()">▶ 계속 진행</button>';
+    if(showCompress){
+        html+='<button class="recovery-btn compress" onclick="_recoveryCompressAndContinue()">🗜️ 압축 후 계속</button>';
+    }
+    html+='<button class="recovery-btn" onclick="_recoveryRetry()">🔄 처음부터 다시</button>'+
+        '<button class="recovery-btn dismiss" onclick="_recoveryDismiss()">닫기</button>'+
+        '</div></div></div>';
+    $currentBubble.append(html);
+    scrollBottom();
+}
+function _recoveryContinue(){
+    $('#recovery-banner').remove();
+    $('#msg-input').val('이전 작업이 완료되지 않았습니다. 중단된 시점부터 이어서 계속 진행해주세요. 이미 완료된 작업은 반복하지 말고, 남은 작업만 수행하세요.');
+    sendMessage();
+}
+function _recoveryCompressAndContinue(){
+    $('#recovery-banner').remove();
+    _pendingContinueAfterCompress=true;
+    compressContext();
+}
+function _recoveryRetry(){
+    $('#recovery-banner').remove();
+    if(lastSentMessage){
+        $('#msg-input').val(lastSentMessage);
+        sendMessage();
+    }
+}
+function _recoveryDismiss(){
+    $('#recovery-banner').slideUp(200,function(){$(this).remove()});
 }
 
 // ================================================================
@@ -751,6 +881,7 @@ function checkSlashTrigger(){
 // ================================================================
 var INITIAL_PAGE=12, MORE_PAGE=10;
 var chatLogState={skip:0,total:0,moreClicked:false};
+var _chatLogXhr=null; // 중복 AJAX 방지용
 
 function buildLogItem(sid, title, dt){
     var $it=$('<div class="log-item'+(sid===currentSessionId?' active':'')+'"></div>').data('sid',sid);
@@ -828,16 +959,22 @@ function trimLogList($l){
 }
 
 function loadChatLogs(reset){
-    if(reset===true||chatLogState.skip===0){
+    // ★ 이전 AJAX 요청이 진행 중이면 취소 (중복 호출 시 append 방지)
+    if(_chatLogXhr){_chatLogXhr.abort();_chatLogXhr=null;}
+    var isReset=(reset===true);
+    if(isReset||chatLogState.skip===0){
         chatLogState.skip=0;
         chatLogState.total=0;
         chatLogState.moreClicked=false;
         $('#log-list').empty();
     }
     var limit=(chatLogState.skip===0)?INITIAL_PAGE:MORE_PAGE;
-    $.getJSON(apiUrl('/api/chat-logs'),{skip:chatLogState.skip,limit:limit},function(d){
+    _chatLogXhr=$.getJSON(apiUrl('/api/chat-logs'),{skip:chatLogState.skip,limit:limit},function(d){
+        _chatLogXhr=null;
         chatLogState.total=d.total||0;
         var $l=$('#log-list');
+        // reset 호출이면 응답 도착 시에도 리스트를 비우고 시작 (안전장치)
+        if(isReset){$l.empty();}
         $l.find('.log-more-btn').remove();
         $l.find('.log-empty').remove();
         if(!d.logs||!d.logs.length){
@@ -848,6 +985,8 @@ function loadChatLogs(reset){
             var dt=log.updated_at?log.updated_at.substring(0,16).replace('T',' '):'';
             $l.append(buildLogItem(log.session_id, log.title, dt));
         });
+        // reset 시 active 하이라이트 완전 제거 (새 대화 → 초기 상태)
+        if(isReset) $l.find('.log-item').removeClass('active');
         chatLogState.skip+=d.logs.length;
         if(chatLogState.skip<chatLogState.total){
             var remaining=chatLogState.total-chatLogState.skip;
@@ -859,7 +998,7 @@ function loadChatLogs(reset){
             });
             $l.append($more);
         }
-    }).fail(function(){});
+    }).fail(function(){_chatLogXhr=null;});
 }
 function loadSessionMessages(msgs){
     var $m=$('#messages').empty();$('#welcome').hide();

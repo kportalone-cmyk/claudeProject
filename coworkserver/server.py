@@ -112,6 +112,7 @@ async def record_token_usage(
     usage, step: int, key_index: int
 ):
     if not MONGO_OK or token_usage_col is None or usage is None:
+        print(f"[TOKEN USAGE] SKIP: MONGO_OK={MONGO_OK}, col={token_usage_col is not None}, usage={usage is not None} | user={username}, service={service_type}, model={model}")
         return
     try:
         input_tokens = getattr(usage, 'input_tokens', 0) or 0
@@ -130,6 +131,7 @@ async def record_token_usage(
             "cost_estimate": round(cost, 6),
             "created_at": datetime.now(timezone.utc),
         })
+        print(f"[TOKEN USAGE] SAVED: user={username}, service={service_type}, model={model}, in={input_tokens}, out={output_tokens}, total={input_tokens + output_tokens}, cost={round(cost, 6)}")
     except Exception as e:
         print(f"[TOKEN USAGE] record error: {e}")
 
@@ -310,7 +312,35 @@ def get_max_tokens(model: str) -> int:
 def select_model(user_message: str) -> str:
     """사용자 메시지를 분석하여 적절한 모델 선택"""
     msg = user_message.lower().strip()
-    # Opus 사용 키워드: 콘텐츠 생성, 복잡한 작업
+    # ① 질문형 문장 감지 → Sonnet (단순 질문에 Opus 낭비 방지)
+    question_patterns = [
+        '인가요', '인가', '인지', '인건', '건가요', '건가',
+        '왜 ', '이유가', '이유는', '이유를', '어떻게 되', '뭔가요', '뭘까',
+        '무엇인가', '무엇이', '어떤 ', '몇 ', '알려줘', '알려주',
+        '설명해', '설명좀', '차이가', '차이는', '차이점',
+        '가능한가', '가능해', '되나요', '될까요', '할 수 있',
+        '맞나요', '맞는지', '아닌가', '있나요', '없나요',
+        'why ', 'what ', 'how ', 'is it', 'can you explain', 'what\'s the',
+    ]
+    # 질문형 어미 (메시지 끝부분 체크)
+    question_endings = [
+        '?', '인가요', '인지?', '나요', '나요?', '까요', '까요?',
+        '건지', '은지', '는지', 'ㄴ지', '세요', '세요?',
+    ]
+    is_question = any(p in msg for p in question_patterns) or any(msg.rstrip().endswith(e) for e in question_endings)
+    if is_question:
+        return MODEL_SONNET
+    # ② Sonnet 사용 키워드: 단순 작업
+    sonnet_keywords = [
+        '파일 목록', '목록 보여', '보여줘', '열어', '읽어', '파일 확인',
+        '이름 변경', '이동', '삭제', '폴더', '복사',
+        '몇 개', '뭐가 있', '어디에', '경로',
+        'list', 'show', 'read', 'rename', 'move', 'delete',
+    ]
+    for kw in sonnet_keywords:
+        if kw in msg:
+            return MODEL_SONNET
+    # ③ Opus 사용 키워드: 콘텐츠 생성, 복잡한 작업
     opus_keywords = [
         '만들어', '생성', '작성', '디자인', '변환', '인포그래픽', '슬라이드', '프레젠테이션',
         'pptx', 'ppt', '파워포인트', '보고서', '웹사이트', '홈페이지', '랜딩', 'html',
@@ -320,22 +350,10 @@ def select_model(user_message: str) -> str:
         '기획', '제안서', '계획', '전략', '아이디어', '브레인스토밍',
         'create', 'generate', 'build', 'design', 'develop', 'write', 'make',
     ]
-    # Sonnet 사용 키워드: 단순 작업
-    sonnet_keywords = [
-        '파일 목록', '목록 보여', '보여줘', '열어', '읽어', '파일 확인',
-        '이름 변경', '이동', '삭제', '폴더', '복사',
-        '몇 개', '뭐가 있', '어디에', '경로',
-        'list', 'show', 'read', 'rename', 'move', 'delete',
-    ]
-    # Sonnet 키워드 우선 체크 (단순 작업)
-    for kw in sonnet_keywords:
-        if kw in msg:
-            return MODEL_SONNET
-    # Opus 키워드 체크 (복잡한 작업)
     for kw in opus_keywords:
         if kw in msg:
             return MODEL_OPUS
-    # 기본값: Sonnet (비용 절감)
+    # ④ 기본값: Sonnet (비용 절감)
     return MODEL_SONNET
 
 IS_WINDOWS = sys.platform == "win32"
@@ -386,9 +404,13 @@ async def lifespan(app):
                 await chat_collection.create_index([("created_at", 1), ("username", 1)])
                 # 프로젝트 대화 카운트
                 await chat_collection.create_index([("created_at", 1), ("project_id", 1)])
-            # task_logs: started_at 범위 조회
+            # tasks: 요청 로그 목록 (started_at 정렬 + username/message 필터)
             if task_collection is not None:
                 await task_collection.create_index("started_at")
+                await task_collection.create_index("username")
+                await task_collection.create_index("task_id", unique=True, sparse=True)
+                await task_collection.create_index([("started_at", -1), ("username", 1)])
+                await task_collection.create_index([("username", 1), ("started_at", -1)])
             # task_log_collection (REST 스케줄 작업): created_at 범위 조회
             if task_log_collection is not None:
                 await task_log_collection.create_index("created_at")
@@ -401,8 +423,11 @@ async def lifespan(app):
                 await token_usage_col.create_index("username")
                 await token_usage_col.create_index("model")
                 await token_usage_col.create_index("service_type")
+                await token_usage_col.create_index("task_id")
+                await token_usage_col.create_index("session_id")
                 await token_usage_col.create_index([("created_at", 1), ("username", 1)])
                 await token_usage_col.create_index([("created_at", 1), ("model", 1)])
+                await token_usage_col.create_index([("username", 1), ("created_at", -1)])
             print("[STARTUP] dashboard indexes created")
         except Exception as e:
             print(f"[STARTUP] dashboard index error: {e}")
@@ -1073,7 +1098,7 @@ async def execute_tool(name, inp, ws_dir=None, username=None):
             # GUI/브라우저 실행 명령 차단 (서버에서 포그라운드 프로세스 방지)
             cmd_lower = cmd.lower().strip()
             if any(cmd_lower.startswith(g) or cmd_lower.startswith("cmd /c " + g) or cmd_lower.startswith("powershell " + g) for g in GUI_COMMANDS):
-                return {"success": True, "note": "서버 환경에서는 GUI 프로그램 실행이 생략됩니다. 파일은 정상적으로 생성되었으며, 미리보기 버튼을 통해 확인할 수 있습니다."}
+                return ok({"success": True, "note": "서버 환경에서는 GUI 프로그램 실행이 생략됩니다. 파일은 정상적으로 생성되었으며, 미리보기 버튼을 통해 확인할 수 있습니다."})
             td = Path(ws_dir)/"_temp"; await aio_mkdir(td); result = await aio_run_command(cmd, str(td), t)
             try:
                 if await aio_exists(td):
@@ -1149,6 +1174,7 @@ async def _auto_compress_history(history: list, username: str) -> list:
         return history
 
     print(f"[AUTO COMPRESS] {username}: {user_turns}턴 감지, 자동 압축 시작")
+    await tm.broadcast(username, {"type": "auto_compress_start", "turns": user_turns, "threshold": AUTO_COMPRESS_THRESHOLD})
     try:
         # 대화 텍스트 추출
         conversation_text = ""
@@ -1246,6 +1272,8 @@ async def run_agent_background(task_id: str, user_message: str, history: list, w
             _sess = await active_sessions_col.find_one({"username": username})
             if _sess: _user_email = _sess.get("email", username)
         except: pass
+    # ★ 세션 ID를 작업 시작 시점에 캡처 (새 대화로 변경되어도 원래 세션에 저장)
+    _original_session_id = user_histories.get(username, {}).get("session_id", task_id)
     print(f"[TASK START] {task_id[:8]} | {username} ({_user_email}) | model={select_model(user_message)} | msg={user_message[:80]}")
     selected_model = select_model(user_message)
     # 이미지가 포함된 경우 Opus 강제 선택 (Vision은 복잡한 작업)
@@ -1348,6 +1376,8 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
         })
 
     try:
+        _api_failed = False
+        _fail_reason = ""  # "context_too_long", "overloaded", "api_error", "connection_error", "max_steps"
         for step in range(1, 11):
             await tm.broadcast(username, {"type":"progress","step":step,"message":f"분석 중... (단계 {step})"})
 
@@ -1390,8 +1420,7 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
                         final_message = await stream.get_final_message()
                         stop_reason = final_message.stop_reason
                         if final_message and hasattr(final_message, 'usage'):
-                            _sid = user_histories.get(username, {}).get("session_id", task_id)
-                            await record_token_usage(username=username, task_id=task_id, session_id=_sid, service_type="chat", model=selected_model, usage=final_message.usage, step=step, key_index=_key_idx)
+                            await record_token_usage(username=username, task_id=task_id, session_id=_original_session_id, service_type="chat", model=selected_model, usage=final_message.usage, step=step, key_index=_key_idx)
                     break
                 except anthropic.RateLimitError:
                     # 다른 API 키로 교체 시도
@@ -1408,6 +1437,7 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
                         await asyncio.sleep(1)
                     await tm.broadcast(username, {"type":"rate_limit_resume","retry":retry+1})
                     if retry == 4:
+                        _api_failed = True; _fail_reason = "overloaded"
                         await tm.broadcast(username, {"type":"error","content":"API 사용량 제한으로 요청을 처리할 수 없습니다. 잠시 후 다시 시도해주세요."}); break
                 except anthropic.APIConnectionError as e:
                     print(f"[API CONNECTION ERROR] {username}: {e}")
@@ -1416,6 +1446,7 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
                         await tm.broadcast(username, {"type":"error","content":f"API 연결 오류 (재시도 {retry+1}/5, {wait}초 후)..."})
                         await asyncio.sleep(wait)
                         continue
+                    _api_failed = True; _fail_reason = "connection_error"
                     await tm.broadcast(username, {"type":"error","content":"API 서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요."})
                     break
                 except anthropic.APIStatusError as e:
@@ -1426,11 +1457,14 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
                             await tm.broadcast(username, {"type":"error","content":f"AI 서버가 과부하 상태입니다. {wait}초 후 재시도합니다... ({retry+1}/5)"})
                             await asyncio.sleep(wait)
                             continue
+                        _api_failed = True; _fail_reason = "overloaded"
                         await tm.broadcast(username, {"type":"error","content":"AI 서버가 과부하 상태입니다. 잠시 후 다시 시도해주세요."})
                         break
                     elif "prompt is too long" in str(e).lower() or "context" in str(e).lower() or "too many tokens" in str(e).lower():
+                        _api_failed = True; _fail_reason = "context_too_long"
                         await tm.broadcast(username, {"type":"error","content":"컨텍스트 길이가 초과되었습니다. 대화를 압축해주세요.","suggest_compress":True})
                     else:
+                        _api_failed = True; _fail_reason = "api_error"
                         await tm.broadcast(username, {"type":"error","content":f"API 오류 ({e.status_code}): {e.message}"})
                     break
                 except anthropic.APIError as e:
@@ -1442,10 +1476,13 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
                             await tm.broadcast(username, {"type":"error","content":f"AI 서버가 과부하 상태입니다. {wait}초 후 재시도합니다... ({retry+1}/5)"})
                             await asyncio.sleep(wait)
                             continue
+                        _api_failed = True; _fail_reason = "overloaded"
                         await tm.broadcast(username, {"type":"error","content":"AI 서버가 과부하 상태입니다. 잠시 후 다시 시도해주세요."})
                     elif "prompt is too long" in error_msg.lower() or "context" in error_msg.lower() or "too many tokens" in error_msg.lower():
+                        _api_failed = True; _fail_reason = "context_too_long"
                         await tm.broadcast(username, {"type":"error","content":"컨텍스트 길이가 초과되었습니다. 대화를 압축해주세요.","suggest_compress":True})
                     else:
+                        _api_failed = True; _fail_reason = "api_error"
                         await tm.broadcast(username, {"type":"error","content":f"API 오류: {e}"})
                     break
                 except asyncio.CancelledError:
@@ -1459,11 +1496,13 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
                             await tm.broadcast(username, {"type":"error","content":f"AI 서버가 과부하 상태입니다. {wait}초 후 재시도합니다... ({retry+1}/5)"})
                             await asyncio.sleep(wait)
                             continue
+                        _api_failed = True; _fail_reason = "overloaded"
                         await tm.broadcast(username, {"type":"error","content":"AI 서버가 과부하 상태입니다. 잠시 후 다시 시도해주세요."})
                         break
                     if retry < 2:
                         await asyncio.sleep(3)
                         continue
+                    _api_failed = True; _fail_reason = "api_error"
                     await tm.broadcast(username, {"type":"error","content":f"예상치 못한 오류: {type(e).__name__}: {e}"})
                     break
 
@@ -1493,10 +1532,20 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
             history.append({"role":"user","content":tool_results})
             if stop_reason == "end_turn": break
 
-        await tm.set_task_status(task_id, "done")
-        _sid = user_histories.get(username, {}).get("session_id", task_id)
-        await tm.broadcast(username, {"type":"done","steps":step,"task_id":task_id,"session_id":_sid})
-        print(f"[TASK DONE] {task_id[:8]} | {username} ({_user_email}) | steps={step}")
+        # max_steps 감지: 10단계 도달 + 아직 도구 호출 중이면 미완료
+        if step == 10 and not _api_failed and final_message and getattr(final_message, 'stop_reason', '') == "tool_use":
+            _api_failed = True; _fail_reason = "max_steps"
+
+        if _api_failed:
+            await tm.set_task_status(task_id, "incomplete")
+            await tm.broadcast(username, {"type":"done","steps":step,"task_id":task_id,"session_id":_original_session_id,"incomplete":True,"incomplete_reason":_fail_reason})
+            if full_response:
+                history.append({"role": "assistant", "content": full_response + f"\n\n[작업이 완료되지 않았습니다 - 사유: {_fail_reason}]"})
+            print(f"[TASK INCOMPLETE] {task_id[:8]} | {username} ({_user_email}) | steps={step} | reason={_fail_reason}")
+        else:
+            await tm.set_task_status(task_id, "done")
+            await tm.broadcast(username, {"type":"done","steps":step,"task_id":task_id,"session_id":_original_session_id})
+            print(f"[TASK DONE] {task_id[:8]} | {username} ({_user_email}) | steps={step}")
 
     except asyncio.CancelledError:
         # 사용자 취소: 중간 히스토리를 저장하여 나중에 이어서 진행 가능
@@ -1509,8 +1558,7 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
     except Exception as e:
         await tm.set_task_status(task_id, "error")
         await tm.broadcast(username, {"type":"error","content":f"작업 오류: {e}"})
-        _sid = user_histories.get(username, {}).get("session_id", task_id)
-        await tm.broadcast(username, {"type":"done","steps":0,"task_id":task_id,"session_id":_sid})
+        await tm.broadcast(username, {"type":"done","steps":0,"task_id":task_id,"session_id":_original_session_id,"incomplete":True,"incomplete_reason":"error"})
         print(f"[TASK ERROR] {task_id[:8]} | {username} ({_user_email}) | {type(e).__name__}: {e}")
 
     finally:
@@ -1528,9 +1576,8 @@ HTML 파일을 생성할 때 반드시 Tailwind CSS를 사용하세요:
                     "response_summary": full_response[:500]
                 }}))
             if MONGO_OK and chat_collection is not None:
-                session_id = user_histories.get(username, {}).get("session_id", task_id)
                 _proj_id = user_histories.get(username, {}).get("project_id", "")
-                await asyncio.shield(save_history_to_db(session_id, username, history, user_message, full_response, started_at, completed_at, current_folder=current_folder, project_id=_proj_id))
+                await asyncio.shield(save_history_to_db(_original_session_id, username, history, user_message, full_response, started_at, completed_at, current_folder=current_folder, project_id=_proj_id))
         except (asyncio.CancelledError, Exception) as e:
             print(f"[SAVE WARNING] {task_id[:8]} | {username} | finally 저장 중 오류: {type(e).__name__}: {e}")
         await tm.clear_active_task(username)
@@ -2222,12 +2269,12 @@ async def admin_dashboard_storage(token: str):
     user_storage = []
     if os.path.isdir(WORKSPACE_ROOT):
         for entry in os.scandir(WORKSPACE_ROOT):
-            if not entry.is_dir() or entry.name.startswith("."):
+            if not entry.is_dir() or entry.name.startswith(".") or entry.name.startswith("_"):
                 continue
             uname = entry.name
             u_files = 0; u_size = 0
             for root, dirs, files in os.walk(entry.path):
-                dirs[:] = [d for d in dirs if not d.startswith(".")]
+                dirs[:] = [d for d in dirs if not d.startswith(".") and not d.startswith("_")]
                 for fn in files:
                     try:
                         u_files += 1
@@ -2468,6 +2515,313 @@ async def admin_token_by_service(token: str, start_date: str = "", end_date: str
     except Exception as e:
         print(f"[ADMIN] token-by-service error: {e}")
         return {"services": []}
+
+@app.get("/{token}/api/admin/dashboard/token-user-detail")
+async def admin_token_user_detail(token: str, username: str = "", start_date: str = "", end_date: str = "", page: int = 1, page_size: int = 50):
+    """특정 사용자의 토큰 사용 상세 내역"""
+    await _check_admin(token)
+    if not username:
+        raise HTTPException(400, "username 필요")
+    if not MONGO_OK or token_usage_col is None:
+        return {"records": [], "total": 0, "summary": {}}
+    try:
+        range_start, range_end = _parse_date_range(start_date, end_date)
+        match_filter = {"username": username}
+        if range_start:
+            match_filter["created_at"] = {"$gte": range_start}
+            if range_end:
+                match_filter["created_at"]["$lte"] = range_end
+
+        total = await token_usage_col.count_documents(match_filter)
+        skip = (page - 1) * page_size
+        cursor = token_usage_col.find(match_filter, {"_id": 0}).sort("created_at", -1).skip(skip).limit(page_size)
+        docs = await cursor.to_list(page_size)
+        records = []
+        for doc in docs:
+            records.append({
+                "created_at": doc.get("created_at", "").isoformat() if hasattr(doc.get("created_at", ""), "isoformat") else str(doc.get("created_at", "")),
+                "service_type": doc.get("service_type", ""),
+                "model": doc.get("model", ""),
+                "input_tokens": doc.get("input_tokens", 0),
+                "output_tokens": doc.get("output_tokens", 0),
+                "total_tokens": doc.get("total_tokens", 0),
+                "cost_estimate": round(doc.get("cost_estimate", 0), 6),
+                "task_id": doc.get("task_id", ""),
+                "session_id": doc.get("session_id", ""),
+                "step": doc.get("step", 0),
+            })
+
+        # 사용자 요약 통계
+        summary_pipeline = [
+            {"$match": match_filter},
+            {"$group": {
+                "_id": None,
+                "input_tokens": {"$sum": "$input_tokens"},
+                "output_tokens": {"$sum": "$output_tokens"},
+                "total_tokens": {"$sum": "$total_tokens"},
+                "cost": {"$sum": "$cost_estimate"},
+                "calls": {"$sum": 1},
+            }}
+        ]
+        summary_agg = await token_usage_col.aggregate(summary_pipeline).to_list(1)
+        summary = {}
+        if summary_agg:
+            s = summary_agg[0]
+            summary = {
+                "input_tokens": s["input_tokens"],
+                "output_tokens": s["output_tokens"],
+                "total_tokens": s["total_tokens"],
+                "cost": round(s["cost"], 2),
+                "calls": s["calls"],
+            }
+
+        # 모델별 집계
+        model_pipeline = [
+            {"$match": match_filter},
+            {"$group": {"_id": "$model", "total_tokens": {"$sum": "$total_tokens"}, "cost": {"$sum": "$cost_estimate"}, "calls": {"$sum": 1}}}
+        ]
+        model_agg = await token_usage_col.aggregate(model_pipeline).to_list(100)
+        models = []
+        for doc in model_agg:
+            m = doc["_id"] or "unknown"
+            label = "Opus" if "opus" in m.lower() else ("Sonnet" if "sonnet" in m.lower() else m)
+            models.append({"model": m, "label": label, "total_tokens": doc["total_tokens"], "cost": round(doc["cost"], 2), "calls": doc["calls"]})
+        models.sort(key=lambda x: x["total_tokens"], reverse=True)
+
+        # 일별 추이
+        daily_pipeline = [
+            {"$match": match_filter},
+            {"$group": {"_id": {"$dateToString": {"format": "%m/%d", "date": "$created_at"}}, "tokens": {"$sum": "$total_tokens"}, "cost": {"$sum": "$cost_estimate"}, "calls": {"$sum": 1}}},
+            {"$sort": {"_id": 1}},
+            {"$limit": 60}
+        ]
+        daily_agg = await token_usage_col.aggregate(daily_pipeline).to_list(60)
+        daily = [{"date": d["_id"], "tokens": d["tokens"], "cost": round(d["cost"], 4), "calls": d["calls"]} for d in daily_agg]
+
+        # 표시 이름
+        display_name = username
+        if org_user_collection is not None:
+            org = await org_user_collection.find_one({"lid": username})
+            if org:
+                display_name = org.get("name", username)
+
+        # 서비스별 집계
+        service_pipeline = [
+            {"$match": match_filter},
+            {"$group": {"_id": "$service_type", "total_tokens": {"$sum": "$total_tokens"}, "cost": {"$sum": "$cost_estimate"}, "calls": {"$sum": 1}}}
+        ]
+        service_agg = await token_usage_col.aggregate(service_pipeline).to_list(100)
+        service_label_map = {"chat": "AI 대화", "rest_task": "스케줄 작업", "compress": "맥락 압축"}
+        services = []
+        for doc in service_agg:
+            stype = doc["_id"] or "unknown"
+            services.append({"service_type": stype, "label": service_label_map.get(stype, stype), "total_tokens": doc["total_tokens"], "cost": round(doc["cost"], 2), "calls": doc["calls"]})
+        services.sort(key=lambda x: x["total_tokens"], reverse=True)
+
+        # 일별 비용 추이 (별도)
+        daily_cost_pipeline = [
+            {"$match": match_filter},
+            {"$group": {"_id": {"$dateToString": {"format": "%m/%d", "date": "$created_at"}}, "input": {"$sum": "$input_tokens"}, "output": {"$sum": "$output_tokens"}}},
+            {"$sort": {"_id": 1}},
+            {"$limit": 60}
+        ]
+        daily_cost_agg = await token_usage_col.aggregate(daily_cost_pipeline).to_list(60)
+        daily_io = [{"date": d["_id"], "input": d["input"], "output": d["output"]} for d in daily_cost_agg]
+
+        return {"records": records, "total": total, "summary": summary, "models": models, "daily": daily, "daily_io": daily_io, "services": services, "display_name": display_name, "username": username}
+    except Exception as e:
+        print(f"[ADMIN] token-user-detail error: {e}")
+        import traceback; traceback.print_exc()
+        return {"records": [], "total": 0, "summary": {}}
+
+@app.get("/{token}/api/admin/dashboard/request-logs")
+async def admin_request_logs(token: str, page: int = 1, page_size: int = 10, username: str = "", start_date: str = "", end_date: str = "", q: str = ""):
+    """사용자 요청 로그 목록 (tasks 컬렉션 기반, token_usage 조인)"""
+    await _check_admin(token)
+    if not MONGO_OK or task_collection is None:
+        return {"logs": [], "total": 0, "page": page, "page_size": page_size, "total_pages": 0}
+    try:
+        match_filter = {}
+        range_start, range_end = _parse_date_range(start_date, end_date)
+        if range_start:
+            match_filter["started_at"] = {"$gte": range_start}
+            if range_end:
+                match_filter["started_at"]["$lte"] = range_end
+        if username:
+            match_filter["username"] = username
+        if q:
+            match_filter["message"] = {"$regex": q, "$options": "i"}
+
+        total = await task_collection.count_documents(match_filter)
+        total_pages = max(1, (total + page_size - 1) // page_size)
+        skip = (page - 1) * page_size
+        cursor = task_collection.find(match_filter, {"_id": 0}).sort("started_at", -1).skip(skip).limit(page_size)
+        docs = await cursor.to_list(page_size)
+
+        # task_id 목록으로 token_usage 일괄 조회
+        task_ids = [d.get("task_id", "") for d in docs if d.get("task_id")]
+        token_map = {}
+        if task_ids and token_usage_col is not None:
+            token_pipeline = [
+                {"$match": {"task_id": {"$in": task_ids}}},
+                {"$group": {
+                    "_id": "$task_id",
+                    "input_tokens": {"$sum": "$input_tokens"},
+                    "output_tokens": {"$sum": "$output_tokens"},
+                    "total_tokens": {"$sum": "$total_tokens"},
+                    "cost": {"$sum": "$cost_estimate"},
+                    "calls": {"$sum": 1},
+                    "models": {"$addToSet": "$model"},
+                }}
+            ]
+            token_agg = await token_usage_col.aggregate(token_pipeline).to_list(len(task_ids))
+            for t in token_agg:
+                token_map[t["_id"]] = t
+
+        # 사용자 이름 일괄 조회
+        usernames = list(set(d.get("username", "") for d in docs if d.get("username")))
+        name_map = {}
+        if usernames and org_user_collection is not None:
+            async for org in org_user_collection.find({"lid": {"$in": usernames}}, {"lid": 1, "nm": 1, "dp": 1}):
+                name_map[org["lid"]] = {"name": org.get("nm", org["lid"]), "dept": org.get("dp", "")}
+
+        logs = []
+        for doc in docs:
+            tid = doc.get("task_id", "")
+            uname = doc.get("username", "")
+            started = doc.get("started_at")
+            completed = doc.get("completed_at")
+            duration = doc.get("duration_seconds", 0)
+            if not duration and started and completed:
+                duration = (completed - started).total_seconds()
+            tu = token_map.get(tid, {})
+            nm = name_map.get(uname, {})
+            model_raw = doc.get("model", "")
+            model_label = "Opus" if "opus" in model_raw.lower() else ("Sonnet" if "sonnet" in model_raw.lower() else model_raw)
+            logs.append({
+                "task_id": tid,
+                "session_id": doc.get("session_id", ""),
+                "username": uname,
+                "display_name": nm.get("name", uname),
+                "dept": nm.get("dept", ""),
+                "message": doc.get("message", "")[:200],
+                "response_summary": doc.get("response_summary", "")[:200],
+                "model": model_raw,
+                "model_label": model_label,
+                "status": doc.get("status", ""),
+                "started_at": started.isoformat() if hasattr(started, "isoformat") else str(started or ""),
+                "completed_at": completed.isoformat() if hasattr(completed, "isoformat") else str(completed or ""),
+                "duration_seconds": round(duration, 1) if duration else 0,
+                "input_tokens": tu.get("input_tokens", 0),
+                "output_tokens": tu.get("output_tokens", 0),
+                "total_tokens": tu.get("total_tokens", 0),
+                "cost": round(tu.get("cost", 0), 4),
+                "token_calls": tu.get("calls", 0),
+                "models_used": tu.get("models", []),
+            })
+
+        return {"logs": logs, "total": total, "page": page, "page_size": page_size, "total_pages": total_pages}
+    except Exception as e:
+        print(f"[ADMIN] request-logs error: {e}")
+        import traceback; traceback.print_exc()
+        return {"logs": [], "total": 0, "page": page, "page_size": page_size, "total_pages": 0}
+
+@app.get("/{token}/api/admin/recent-searches")
+async def admin_get_recent_searches(token: str):
+    """관리자의 최근 사용자 검색 기록 조회"""
+    admin_user = await _check_admin(token)
+    if not MONGO_OK or user_settings_collection is None:
+        return {"recent": []}
+    try:
+        doc = await user_settings_collection.find_one({"username": admin_user}, {"admin_recent_searches": 1})
+        return {"recent": (doc or {}).get("admin_recent_searches", [])}
+    except Exception:
+        return {"recent": []}
+
+@app.post("/{token}/api/admin/recent-searches")
+async def admin_save_recent_search(token: str, request: Request):
+    """관리자의 최근 사용자 검색 기록 저장"""
+    admin_user = await _check_admin(token)
+    if not MONGO_OK or user_settings_collection is None:
+        return {"ok": False}
+    try:
+        body = await request.json()
+        entry = {
+            "username": body.get("username", ""),
+            "name": body.get("name", ""),
+            "dept": body.get("dept", ""),
+            "time": datetime.now(timezone.utc).isoformat(),
+        }
+        if not entry["username"]:
+            return {"ok": False}
+        # 기존 목록 조회
+        doc = await user_settings_collection.find_one({"username": admin_user}, {"admin_recent_searches": 1})
+        recent = (doc or {}).get("admin_recent_searches", [])
+        # 중복 제거 후 맨 앞에 추가
+        recent = [r for r in recent if r.get("username") != entry["username"]]
+        recent.insert(0, entry)
+        recent = recent[:10]
+        await user_settings_collection.update_one(
+            {"username": admin_user},
+            {"$set": {"admin_recent_searches": recent}},
+            upsert=True
+        )
+        return {"ok": True, "recent": recent}
+    except Exception as e:
+        print(f"[ADMIN] save recent search error: {e}")
+        return {"ok": False}
+
+@app.get("/{token}/api/admin/dashboard/task-detail")
+async def admin_task_detail(token: str, task_id: str = "", session_id: str = ""):
+    """관리자용: task_id 또는 session_id로 질의/응답 내역 조회"""
+    await _check_admin(token)
+    if not task_id and not session_id:
+        raise HTTPException(400, "task_id 또는 session_id 필요")
+    result = {"task_id": task_id, "session_id": session_id, "message": "", "response_summary": "", "messages": [], "username": "", "display_name": "", "model": "", "status": "", "started_at": "", "completed_at": "", "duration_seconds": 0}
+    try:
+        # 1) task_collection에서 질의/응답 요약 조회
+        if MONGO_OK and task_collection is not None and task_id:
+            doc = await task_collection.find_one({"task_id": task_id}, {"_id": 0})
+            if doc:
+                result["message"] = doc.get("message", "")
+                result["response_summary"] = doc.get("response_summary", "")
+                result["username"] = doc.get("username", "")
+                result["model"] = doc.get("model", "")
+                result["status"] = doc.get("status", "")
+                result["started_at"] = doc["started_at"].isoformat() if hasattr(doc.get("started_at"), "isoformat") else str(doc.get("started_at", ""))
+                result["completed_at"] = doc["completed_at"].isoformat() if hasattr(doc.get("completed_at"), "isoformat") else str(doc.get("completed_at", ""))
+                result["duration_seconds"] = round(doc.get("duration_seconds", 0), 1)
+                if not session_id:
+                    session_id = doc.get("session_id", "")
+                    result["session_id"] = session_id
+        # 2) chat_collection에서 전체 대화 내역 조회
+        sid = session_id or task_id
+        if MONGO_OK and chat_collection is not None and sid:
+            chat = await chat_collection.find_one({"session_id": sid}, {"_id": 0})
+            if chat:
+                msgs = chat.get("messages", [])
+                # 기존 데이터: assistant content가 2000자로 잘려있으면 api_history에서 전체 텍스트 복원
+                api_hist = chat.get("api_history", [])
+                if api_hist and msgs:
+                    ai_texts = [h.get("content", "") for h in api_hist if h.get("role") == "assistant" and isinstance(h.get("content"), str)]
+                    ai_idx = 0
+                    for m in msgs:
+                        if m.get("role") == "assistant" and isinstance(m.get("content"), str):
+                            c = m["content"]
+                            if len(c) >= 1990 and ai_idx < len(ai_texts) and len(ai_texts[ai_idx]) > len(c):
+                                m["content"] = ai_texts[ai_idx]
+                            ai_idx += 1
+                result["messages"] = msgs
+                if not result["username"]:
+                    result["username"] = chat.get("username", "")
+        # 3) 표시 이름 조회
+        if result["username"] and org_user_collection is not None:
+            org = await org_user_collection.find_one({"lid": result["username"]})
+            if org:
+                result["display_name"] = org.get("name", result["username"])
+    except Exception as e:
+        print(f"[ADMIN] task-detail error: {e}")
+    return result
 
 @app.get("/{token}/api/admin/dashboard")
 async def admin_dashboard_page(token: str):
@@ -5146,7 +5500,7 @@ async def save_history_to_db(session_id: str, username: str, history: list, user
         return
     title = user_message[:80] + ("..." if len(user_message) > 80 else "") if user_message else ""
     me = {"role": "user", "content": user_message, "timestamp": (started_at or datetime.now(timezone.utc)).isoformat()}
-    ae = {"role": "assistant", "content": full_response[:2000], "timestamp": (completed_at or datetime.now(timezone.utc)).isoformat()}
+    ae = {"role": "assistant", "content": full_response, "timestamp": (completed_at or datetime.now(timezone.utc)).isoformat()}
     api_history = truncate_history_for_db(history)
     existing = await chat_collection.find_one({"session_id": session_id})
     if existing:
